@@ -34,3 +34,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env
+.env.local
+.env.development
+.env.production
+.env*.local
+.vercel
+.next
+node_modules
+supabase/.branches
+supabase/.temp
