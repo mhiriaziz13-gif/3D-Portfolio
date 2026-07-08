@@ -1,0 +1,50 @@
+import { SkillDataProvider } from "@/components/sub/skill-data-provider";
+import { SkillText } from "@/components/sub/skill-text";
+import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
+import type { SkillCategory } from "@/constants/portfolio";
+
+export const Skills = ({ skillCategories = fallbackPortfolioContent.skillCategories }: { skillCategories?: SkillCategory[] }) => {
+  return (
+    <section
+      id="skills"
+      className="relative flex h-full flex-col items-center justify-center gap-6 overflow-hidden px-6 py-24"
+    >
+      <SkillText />
+
+      <div className="relative z-[20] mx-auto grid w-full max-w-6xl gap-6">
+        {skillCategories.map((category) => (
+          <div
+            key={category.title}
+            className="rounded-lg border border-white/10 bg-[#030014]/55 p-5 shadow-lg shadow-[#2A0E61]/20 backdrop-blur-sm"
+          >
+            <h3 className="mb-4 text-center text-lg font-semibold text-white md:text-left">
+              {category.title}
+            </h3>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {category.skills.map((skill, i) => (
+                <SkillDataProvider
+                  key={`${category.title}-${skill}`}
+                  name={skill}
+                  index={i}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="absolute inset-0 -z-10 opacity-30" aria-hidden="true">
+        <video
+          className="h-full w-full object-cover"
+          preload="metadata"
+          playsInline
+          loop
+          muted
+          autoPlay
+        >
+          <source src="/videos/skills-bg.webm" type="video/webm" />
+        </video>
+      </div>
+    </section>
+  );
+};
