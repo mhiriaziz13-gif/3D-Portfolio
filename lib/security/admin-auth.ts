@@ -44,7 +44,7 @@ const rememberCookieOptions = (expires: Date) => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
-  path: "/admin",
+  path: "/",
   expires,
 });
 
@@ -198,7 +198,7 @@ export const clearRememberDeviceCookie = (response: NextResponse) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    path: "/admin",
+    path: "/",
     maxAge: 0,
   });
 };

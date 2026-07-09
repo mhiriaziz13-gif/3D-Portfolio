@@ -150,8 +150,8 @@ const adminFetch = async (url: string, init: RequestInit, verifiedAccessToken?: 
   let accessToken = verifiedAccessToken;
 
   try {
-    const supabase = createSupabaseBrowserClient();
-    const { data } = await supabase.auth.getSession();
+    const supabaseClient = createSupabaseBrowserClient();
+    const { data } = await supabaseClient.auth.getSession();
     accessToken = data.session?.access_token ?? accessToken;
   } catch {
     // Use the session already verified while rendering the admin page.
