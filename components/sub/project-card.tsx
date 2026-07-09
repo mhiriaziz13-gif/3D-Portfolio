@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type ProjectCardProps = {
   src: string;
@@ -20,11 +20,9 @@ export const ProjectCard = ({
   href,
 }: ProjectCardProps) => {
   const fallbackSrc = "/projects/project-1.png";
-  const [imageSrc, setImageSrc] = useState(src || fallbackSrc);
-
-  useEffect(() => {
-    setImageSrc(src || fallbackSrc);
-  }, [src]);
+  const resolvedSrc = src || fallbackSrc;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const imageSrc = failedSrc === resolvedSrc ? fallbackSrc : resolvedSrc;
 
   return (
     <article className="group relative overflow-hidden rounded-lg border border-[#2A0E61] bg-[#08021c]/70 shadow-lg shadow-[#2A0E61]/20 backdrop-blur-sm">
@@ -37,7 +35,7 @@ export const ProjectCard = ({
           className="object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-100"
           onError={() => {
             if (imageSrc !== fallbackSrc) {
-              setImageSrc(fallbackSrc);
+              setFailedSrc(resolvedSrc);
             }
           }}
         />
