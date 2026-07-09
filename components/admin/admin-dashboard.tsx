@@ -145,19 +145,20 @@ const adminApiError = (data: { code?: string; error?: string }) => {
   }
 };
 
-const adminFetch = async (url: string, init: RequestInit) => {
+const adminFetch = async (url: string, init: RequestInit, verifiedAccessToken?: string) => {
   const headers = new Headers(init.headers);
+  let accessToken = verifiedAccessToken;
 
   try {
     const supabase = createSupabaseBrowserClient();
     const { data } = await supabase.auth.getSession();
-    const accessToken = data.session?.access_token;
-    if (accessToken) {
-      headers.set("Authorization", `Bearer ${accessToken}`);
-    }
+    accessToken = data.session?.access_token ?? accessToken;
   } catch {
-    // Cookie authentication remains the primary path if the browser client
-    // cannot read the current session.
+    // Use the session already verified while rendering the admin page.
+  }
+
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
   return fetch(url, {
@@ -181,7 +182,15 @@ const FieldInput = ({ field, value, onChange }: { field: Field; value: unknown; 
   return <label className="grid gap-2 text-sm text-gray-300"><span>{field.label}</span><input type={field.kind === "number" ? "number" : field.kind === "email" ? "email" : field.kind === "url" ? "url" : "text"} value={String(value ?? "")} onChange={(event) => onChange(field.kind === "number" ? Number(event.target.value) : event.target.value)} className={inputClass} required={field.required} placeholder={field.placeholder} /></label>;
 };
 
-export const AdminDashboard = ({ content, email }: { content: AdminContentSnapshot; email?: string }) => {
+export const AdminDashboard = ({
+  content,
+  email,
+  accessToken,
+}: {
+  content: AdminContentSnapshot;
+  email?: string;
+  accessToken?: string;
+}) => {
   const [view, setView] = useState<View>("overview");
   const [records, setRecords] = useState<Record<string, Row[]>>(() => Object.fromEntries([...sections.map((section) => section.table), "contact_messages", "uploads"].map((table) => [table, rowsFor(content, table as CmsTableName)])));
   const [editing, setEditing] = useState<number | null>(null);
@@ -205,7 +214,7 @@ export const AdminDashboard = ({ content, email }: { content: AdminContentSnapsh
     event.preventDefault();
     if (!active) return;
     setStatus("Saving...");
-    const response = await adminFetch("/api/admin/content", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: active.table, values: draft }) });
+    const response = await adminFetch("/api/admin/content", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: active.table, values: draft }) }, accessToken);
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.ok) { setStatus(adminApiError(data)); return; }
     setRecords((current) => {
@@ -221,7 +230,7 @@ export const AdminDashboard = ({ content, email }: { content: AdminContentSnapsh
     if (!row) return;
     if (!row.id) { setRecords((current) => ({ ...current, [section.table]: current[section.table].filter((_, itemIndex) => itemIndex !== index) })); return; }
     if (!window.confirm(`Delete this ${section.label.toLowerCase()} entry?`)) return;
-    const response = await adminFetch("/api/admin/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: section.table, id: row.id }) });
+    const response = await adminFetch("/api/admin/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: section.table, id: row.id }) }, accessToken);
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.ok) { setStatus(adminApiError(data)); return; }
     setRecords((current) => ({ ...current, [section.table]: current[section.table].filter((_, itemIndex) => itemIndex !== index) }));
@@ -229,7 +238,7 @@ export const AdminDashboard = ({ content, email }: { content: AdminContentSnapsh
   };
 
   const updateMessage = async (id: unknown, statusValue: "read" | "archived") => {
-    const response = await adminFetch("/api/admin/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: statusValue }) });
+    const response = await adminFetch("/api/admin/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: statusValue }) }, accessToken);
     const data = await response.json().catch(() => ({}));
     if (response.ok && data.ok) setRecords((current) => ({ ...current, contact_messages: current.contact_messages.map((row) => row.id === id ? data.message : row) }));
     setStatus(response.ok && data.ok ? "Message updated." : adminApiError(data));
@@ -237,7 +246,7 @@ export const AdminDashboard = ({ content, email }: { content: AdminContentSnapsh
 
   const upload = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setUploadStatus("Uploading...");
-    const response = await adminFetch("/api/admin/upload", { method: "POST", body: new FormData(event.currentTarget) });
+    const response = await adminFetch("/api/admin/upload", { method: "POST", body: new FormData(event.currentTarget) }, accessToken);
     const data = await response.json().catch(() => ({}));
     setUploadStatus(response.ok && data.ok ? `Uploaded: ${data.publicUrl ?? data.upload?.path}` : adminApiError(data));
   };
