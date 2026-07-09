@@ -1,0 +1,70 @@
+{
+  "name": "ahmed-aziz-mhiri-portfolio",
+  "version": "1.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "type-check": "tsc --noEmit",
+    "start": "next start",
+    "lint": "eslint ."
+  },
+  "author": {
+    "name": "Ahmed Aziz Mhiri",
+    "email": "mhiriaziz13@gmail.com",
+    "url": "https://linkedin.com/in/ahmed-aziz-mhiri"
+  },
+  "description": "Personal portfolio of Ahmed Aziz Mhiri focused on marketing analytics, commercial analytics, business intelligence and process automation.",
+  "keywords": [
+    "Ahmed Aziz Mhiri",
+    "marketing analytics",
+    "commercial analytics",
+    "business intelligence",
+    "process automation",
+    "data analyst",
+    "BI analyst",
+    "revenue operations",
+    "CRM automation",
+    "digital marketing analyst",
+    "Next.js",
+    "portfolio",
+    "framer motion",
+    "tailwindcss"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.1",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.42.2",
+    "maath": "^0.10.8",
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "react-icons": "^5.7.0",
+    "react-intersection-observer": "^10.0.3",
+    "tailwind-merge": "^3.6.0",
+    "three": "^0.184.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "autoprefixer": "^10.5.2",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "16.2.9",
+    "postcss": "^8",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3"
+  }
+}
