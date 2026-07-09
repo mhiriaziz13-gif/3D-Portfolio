@@ -5,6 +5,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { FiEdit2, FiPlus, FiSave, FiTrash2, FiUploadCloud } from "react-icons/fi";
 
 import type { AdminContentSnapshot, CmsTableName } from "@/lib/cms-types";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Row = Record<string, unknown>;
 type FieldKind = "text" | "url" | "email" | "textarea" | "list" | "number" | "checkbox" | "select";
@@ -144,6 +145,28 @@ const adminApiError = (data: { code?: string; error?: string }) => {
   }
 };
 
+const adminFetch = async (url: string, init: RequestInit) => {
+  const headers = new Headers(init.headers);
+
+  try {
+    const supabase = createSupabaseBrowserClient();
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (accessToken) {
+      headers.set("Authorization", `Bearer ${accessToken}`);
+    }
+  } catch {
+    // Cookie authentication remains the primary path if the browser client
+    // cannot read the current session.
+  }
+
+  return fetch(url, {
+    ...init,
+    credentials: "include",
+    headers,
+  });
+};
+
 const FieldInput = ({ field, value, onChange }: { field: Field; value: unknown; onChange: (value: unknown) => void }) => {
   if (field.kind === "checkbox") {
     return <label className="flex items-center gap-3 text-sm text-gray-200"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-cyan-400" />{field.label}</label>;
@@ -182,7 +205,7 @@ export const AdminDashboard = ({ content, email }: { content: AdminContentSnapsh
     event.preventDefault();
     if (!active) return;
     setStatus("Saving...");
-    const response = await fetch("/api/admin/content", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: active.table, values: draft }) });
+    const response = await adminFetch("/api/admin/content", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: active.table, values: draft }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.ok) { setStatus(adminApiError(data)); return; }
     setRecords((current) => {
@@ -198,7 +221,7 @@ export const AdminDashboard = ({ content, email }: { content: AdminContentSnapsh
     if (!row) return;
     if (!row.id) { setRecords((current) => ({ ...current, [section.table]: current[section.table].filter((_, itemIndex) => itemIndex !== index) })); return; }
     if (!window.confirm(`Delete this ${section.label.toLowerCase()} entry?`)) return;
-    const response = await fetch("/api/admin/content", { method: "DELETE", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: section.table, id: row.id }) });
+    const response = await adminFetch("/api/admin/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: section.table, id: row.id }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.ok) { setStatus(adminApiError(data)); return; }
     setRecords((current) => ({ ...current, [section.table]: current[section.table].filter((_, itemIndex) => itemIndex !== index) }));
@@ -206,7 +229,7 @@ export const AdminDashboard = ({ content, email }: { content: AdminContentSnapsh
   };
 
   const updateMessage = async (id: unknown, statusValue: "read" | "archived") => {
-    const response = await fetch("/api/admin/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: statusValue }) });
+    const response = await adminFetch("/api/admin/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: statusValue }) });
     const data = await response.json().catch(() => ({}));
     if (response.ok && data.ok) setRecords((current) => ({ ...current, contact_messages: current.contact_messages.map((row) => row.id === id ? data.message : row) }));
     setStatus(response.ok && data.ok ? "Message updated." : adminApiError(data));
@@ -214,7 +237,7 @@ export const AdminDashboard = ({ content, email }: { content: AdminContentSnapsh
 
   const upload = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setUploadStatus("Uploading...");
-    const response = await fetch("/api/admin/upload", { method: "POST", credentials: "include", body: new FormData(event.currentTarget) });
+    const response = await adminFetch("/api/admin/upload", { method: "POST", body: new FormData(event.currentTarget) });
     const data = await response.json().catch(() => ({}));
     setUploadStatus(response.ok && data.ok ? `Uploaded: ${data.publicUrl ?? data.upload?.path}` : adminApiError(data));
   };

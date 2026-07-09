@@ -16,14 +16,33 @@ type MutableCookieStore = {
   set: (name: string, value: string, options?: Record<string, unknown>) => void;
 };
 
-export const createSupabaseServerClient = async () => {
+const cookiesFromRequest = (request: Request): CookieRecord[] => {
+  const header = request.headers.get("cookie");
+  if (!header) return [];
+
+  return header.split(";").flatMap((part) => {
+    const separator = part.indexOf("=");
+    if (separator < 1) return [];
+
+    const name = part.slice(0, separator).trim();
+    const rawValue = part.slice(separator + 1).trim();
+    try {
+      return [{ name, value: decodeURIComponent(rawValue) }];
+    } catch {
+      return [{ name, value: rawValue }];
+    }
+  });
+};
+
+export const createSupabaseServerClient = async (request?: Request) => {
   assertSupabasePublicEnv();
   const cookieStore = (await cookies()) as unknown as MutableCookieStore;
+  const requestCookies = request ? cookiesFromRequest(request) : [];
 
   return createServerClient(supabaseEnv.url, supabaseEnv.anonKey, {
     cookies: {
       getAll() {
-        return cookieStore.getAll();
+        return requestCookies.length ? requestCookies : cookieStore.getAll();
       },
       setAll(cookiesToSet) {
         try {

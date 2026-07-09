@@ -72,10 +72,14 @@ export const getAdminMembership = async (userId: string) => {
 export const isAdminUser = async (userId: string) =>
   (await getAdminMembership(userId)).status === "admin";
 
-export const getAdminAuthState = async (): Promise<AdminAuthState> => {
+export const getAdminAuthState = async (request?: Request): Promise<AdminAuthState> => {
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.auth.getUser();
+    const supabase = await createSupabaseServerClient(request);
+    const authorization = request?.headers.get("authorization") ?? "";
+    const accessToken = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+    const { data, error } = accessToken
+      ? await supabase.auth.getUser(accessToken)
+      : await supabase.auth.getUser();
     const user = data.user;
 
     if (error || !user) {
@@ -245,7 +249,7 @@ export const getMfaContext = async (
 };
 
 export const getAuthenticatedAdmin = async (request?: Request) => {
-  const state = await getAdminAuthState();
+  const state = await getAdminAuthState(request);
   if (state.status !== "authenticated") {
     return null;
   }
@@ -312,7 +316,7 @@ export const requireAdminApi = async (
   }
 
   try {
-    const state = await getAdminAuthState();
+    const state = await getAdminAuthState(request);
     if (state.status === "not_authenticated") {
       return {
         ok: false as const,
