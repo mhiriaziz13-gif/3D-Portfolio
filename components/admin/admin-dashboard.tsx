@@ -2,179 +2,227 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
+import { FiEdit2, FiPlus, FiSave, FiTrash2, FiUploadCloud } from "react-icons/fi";
 
 import type { AdminContentSnapshot, CmsTableName } from "@/lib/cms-types";
 
-const sections: { table: CmsTableName; label: string; help: string }[] = [
-  { table: "profile", label: "Profile", help: "Name, contact links, avatar and global positioning." },
-  { table: "hero", label: "Hero", help: "Homepage hero copy, dynamic titles and CTAs." },
-  { table: "about", label: "About", help: "About title, body and highlights." },
-  { table: "skills", label: "Skills", help: "Skill badges grouped by category and ordered by sort_order." },
-  { table: "projects", label: "Projects", help: "Project cards and project detail metadata." },
-  { table: "project_sections", label: "Project Sections", help: "Detail sections linked to project_id." },
-  { table: "experience", label: "Experience", help: "Timeline entries and company logos." },
-  { table: "education", label: "Education", help: "Education records." },
-  { table: "certifications", label: "Certifications", help: "Certifications and credential links." },
-  { table: "resumes", label: "Resumes", help: "PDF/DOCX resume variants." },
-  { table: "social_links", label: "Social Links", help: "Public social/contact links." },
-  { table: "contact_messages", label: "Messages", help: "Recent contact form submissions." },
-  { table: "uploads", label: "Uploads", help: "Uploaded file metadata." },
+type Row = Record<string, unknown>;
+type FieldKind = "text" | "url" | "email" | "textarea" | "list" | "number" | "checkbox" | "select";
+type Field = { key: string; label: string; kind?: FieldKind; required?: boolean; options?: string[]; placeholder?: string };
+type Section = { table: CmsTableName; label: string; description: string; fields: Field[]; singleton?: boolean };
+type View = "overview" | CmsTableName;
+
+const skillCategories = [
+  "Data & Business Intelligence",
+  "Marketing & Customer Growth",
+  "Automation & Operations",
+  "Technical Stack",
 ];
 
-const emptyTemplates: Partial<Record<CmsTableName, Record<string, unknown>>> = {
-  skills: { name: "", category: "", sort_order: 0, published: true },
-  projects: { slug: "", title: "", summary: "", description: "", tags: [], tools: [], featured: false, published: true, sort_order: 0 },
-  project_sections: { project_id: "", title: "", body: "", bullets: [], sort_order: 0 },
-  experience: { company: "", role: "", location: "", start_date: "", end_date: "", logo_url: "", points: [], tools: [], sort_order: 0, published: true },
-  education: { institution: "", degree: "", start_date: "", end_date: "", status: "", location: "", sort_order: 0, published: true },
-  certifications: { name: "", issuer: "", date: "", credential_url: "", sort_order: 0, published: true },
-  resumes: { label: "", variant: "", pdf_url: "", docx_url: "", sort_order: 0, published: true },
-  social_links: { label: "", url: "", icon_key: "", sort_order: 0, published: true },
+const sections: Section[] = [
+  {
+    table: "profile", label: "Profile", singleton: true, description: "Identity, positioning and public contact details.",
+    fields: [
+      { key: "full_name", label: "Full name", required: true }, { key: "headline", label: "Headline" },
+      { key: "tagline", label: "Tagline" }, { key: "secondary_line", label: "Secondary line" },
+      { key: "location", label: "Location" }, { key: "email", label: "Email", kind: "email" },
+      { key: "linkedin_url", label: "LinkedIn URL", kind: "url" }, { key: "github_url", label: "GitHub URL", kind: "url" },
+      { key: "avatar_url", label: "Avatar URL", kind: "url" }, { key: "availability", label: "Availability" },
+      { key: "short_bio", label: "Short bio", kind: "textarea" }, { key: "about_text", label: "About text", kind: "textarea" },
+      { key: "about_focus", label: "Focus points", kind: "list" }, { key: "published", label: "Published", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "hero", label: "Hero", singleton: true, description: "Homepage copy and calls to action.",
+    fields: [
+      { key: "eyebrow", label: "Eyebrow" }, { key: "title", label: "Title" }, { key: "subtitle", label: "Subtitle" },
+      { key: "tagline", label: "Tagline" }, { key: "dynamic_titles", label: "Dynamic titles", kind: "list" },
+      { key: "primary_cta_label", label: "Primary CTA label" }, { key: "primary_cta_href", label: "Primary CTA link" },
+      { key: "secondary_cta_label", label: "Secondary CTA label" }, { key: "secondary_cta_href", label: "Secondary CTA link" },
+      { key: "published", label: "Published", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "about", label: "About", singleton: true, description: "About page introduction and highlights.",
+    fields: [
+      { key: "title", label: "Title" }, { key: "body", label: "Body", kind: "textarea" },
+      { key: "highlights", label: "Highlights", kind: "list" }, { key: "avatar_url", label: "Avatar URL", kind: "url" },
+      { key: "published", label: "Published", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "skills", label: "Skills", description: "Skills grouped by recruiter-friendly categories.",
+    fields: [
+      { key: "name", label: "Skill", required: true }, { key: "category", label: "Category", kind: "select", options: skillCategories, required: true },
+      { key: "icon_key", label: "Icon key" }, { key: "description", label: "Description", kind: "textarea" },
+      { key: "sort_order", label: "Sort order", kind: "number" }, { key: "published", label: "Published", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "projects", label: "Projects", description: "Project cards and detail metadata.",
+    fields: [
+      { key: "title", label: "Title", required: true }, { key: "slug", label: "Slug", required: true }, { key: "type", label: "Type" },
+      { key: "summary", label: "Summary", kind: "textarea" }, { key: "description", label: "Description", kind: "textarea" },
+      { key: "cover_image_url", label: "Cover image URL", kind: "url" }, { key: "tags", label: "Tags", kind: "list" },
+      { key: "tools", label: "Tools", kind: "list" }, { key: "sort_order", label: "Sort order", kind: "number" },
+      { key: "featured", label: "Featured", kind: "checkbox" }, { key: "published", label: "Published", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "project_sections", label: "Project Sections", description: "Structured blocks used on project detail pages.",
+    fields: [
+      { key: "project_id", label: "Project ID", required: true }, { key: "title", label: "Title", required: true },
+      { key: "body", label: "Body", kind: "textarea" }, { key: "bullets", label: "Bullets", kind: "list" },
+      { key: "sort_order", label: "Sort order", kind: "number" },
+    ],
+  },
+  {
+    table: "experience", label: "Experience", description: "Career timeline, company logos and achievements.",
+    fields: [
+      { key: "company", label: "Company", required: true }, { key: "role", label: "Role", required: true }, { key: "location", label: "Location" },
+      { key: "start_date", label: "Start date" }, { key: "end_date", label: "End date" }, { key: "logo_url", label: "Logo URL", kind: "url" },
+      { key: "points", label: "Achievements", kind: "list" }, { key: "tools", label: "Tools", kind: "list" },
+      { key: "sort_order", label: "Sort order", kind: "number" }, { key: "published", label: "Published", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "education", label: "Education", description: "Education and training records.",
+    fields: [
+      { key: "institution", label: "Institution", required: true }, { key: "degree", label: "Degree", required: true },
+      { key: "start_date", label: "Start date" }, { key: "end_date", label: "End date" }, { key: "status", label: "Status" },
+      { key: "location", label: "Location" }, { key: "sort_order", label: "Sort order", kind: "number" },
+      { key: "published", label: "Published", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "certifications", label: "Certifications", description: "Credentials displayed on the CV page.",
+    fields: [
+      { key: "name", label: "Certification name", required: true }, { key: "issuer", label: "Issuer" }, { key: "date", label: "Date" },
+      { key: "credential_url", label: "Credential URL", kind: "url" }, { key: "credential_id", label: "Credential ID" },
+      { key: "image_url", label: "Image URL", kind: "url" }, { key: "description", label: "Description", kind: "textarea" },
+      { key: "tags", label: "Skills and tags", kind: "list" }, { key: "sort_order", label: "Sort order", kind: "number" },
+      { key: "published", label: "Published", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "resumes", label: "Resumes", description: "PDF and DOCX variants available for download.",
+    fields: [
+      { key: "label", label: "Label", required: true }, { key: "variant", label: "Variant", required: true },
+      { key: "pdf_url", label: "PDF URL", kind: "url" }, { key: "docx_url", label: "DOCX URL", kind: "url" },
+      { key: "sort_order", label: "Sort order", kind: "number" }, { key: "published", label: "Published", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "social_links", label: "Social Links", description: "LinkedIn, GitHub, email and future profiles.",
+    fields: [
+      { key: "label", label: "Label", required: true }, { key: "url", label: "URL", required: true },
+      { key: "icon_key", label: "Icon key" }, { key: "sort_order", label: "Sort order", kind: "number" },
+      { key: "published", label: "Published", kind: "checkbox" },
+    ],
+  },
+];
+
+const emptyRow = (section: Section): Row => Object.fromEntries(section.fields.map((field) => [field.key, field.kind === "checkbox" ? field.key === "published" : field.kind === "number" ? 0 : field.kind === "list" ? [] : ""]));
+const rowsFor = (snapshot: AdminContentSnapshot, table: CmsTableName): Row[] => (Array.isArray(snapshot[table]) ? snapshot[table] : []).filter((row): row is Row => Boolean(row) && typeof row === "object");
+const inputClass = "w-full rounded-lg border border-white/10 bg-[#151030] px-3 py-2.5 text-sm text-white outline-none transition focus:border-cyan-300/60";
+
+const FieldInput = ({ field, value, onChange }: { field: Field; value: unknown; onChange: (value: unknown) => void }) => {
+  if (field.kind === "checkbox") {
+    return <label className="flex items-center gap-3 text-sm text-gray-200"><input type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} className="h-4 w-4 accent-cyan-400" />{field.label}</label>;
+  }
+  if (field.kind === "select") {
+    return <label className="grid gap-2 text-sm text-gray-300"><span>{field.label}</span><select value={String(value ?? "")} onChange={(event) => onChange(event.target.value)} className={inputClass} required={field.required}><option value="">Choose a category</option>{field.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>;
+  }
+  if (field.kind === "textarea" || field.kind === "list") {
+    const shown = field.kind === "list" && Array.isArray(value) ? value.join("\n") : String(value ?? "");
+    return <label className="grid gap-2 text-sm text-gray-300 md:col-span-2"><span>{field.label}{field.kind === "list" ? " (one per line)" : ""}</span><textarea value={shown} onChange={(event) => onChange(field.kind === "list" ? event.target.value.split("\n").map((item) => item.trim()).filter(Boolean) : event.target.value)} className={`${inputClass} min-h-28 resize-y`} required={field.required} /></label>;
+  }
+  return <label className="grid gap-2 text-sm text-gray-300"><span>{field.label}</span><input type={field.kind === "number" ? "number" : field.kind === "email" ? "email" : field.kind === "url" ? "url" : "text"} value={String(value ?? "")} onChange={(event) => onChange(field.kind === "number" ? Number(event.target.value) : event.target.value)} className={inputClass} required={field.required} placeholder={field.placeholder} /></label>;
 };
 
-type AdminDashboardProps = {
-  content: AdminContentSnapshot;
-  email?: string;
-};
-
-const stringify = (value: unknown) => JSON.stringify(value ?? [], null, 2);
-
-export const AdminDashboard = ({ content, email }: AdminDashboardProps) => {
-  const [activeTable, setActiveTable] = useState<CmsTableName>("profile");
-  const [drafts, setDrafts] = useState<Record<string, string>>(() =>
-    Object.fromEntries(sections.map((section) => [section.table, stringify(content[section.table] ?? [])])),
-  );
-  const [deleteId, setDeleteId] = useState("");
+export const AdminDashboard = ({ content, email }: { content: AdminContentSnapshot; email?: string }) => {
+  const [view, setView] = useState<View>("overview");
+  const [records, setRecords] = useState<Record<string, Row[]>>(() => Object.fromEntries([...sections.map((section) => section.table), "contact_messages", "uploads"].map((table) => [table, rowsFor(content, table as CmsTableName)])));
+  const [editing, setEditing] = useState<number | null>(null);
+  const [draft, setDraft] = useState<Row>({});
   const [status, setStatus] = useState("");
   const [uploadStatus, setUploadStatus] = useState("");
-  const active = sections.find((section) => section.table === activeTable) ?? sections[0];
+  const active = sections.find((section) => section.table === view);
 
-  const rows = useMemo(() => {
-    try {
-      const parsed = JSON.parse(drafts[activeTable] ?? "[]");
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }, [activeTable, drafts]);
+  const stats = useMemo(() => ({
+    skills: records.skills?.length ?? 0, projects: records.projects?.length ?? 0,
+    experience: records.experience?.length ?? 0, certifications: records.certifications?.length ?? 0,
+    resumes: records.resumes?.length ?? 0,
+    unread: (records.contact_messages ?? []).filter((row) => row.status === "new").length,
+  }), [records]);
 
-  const saveRows = async () => {
+  const beginEdit = (section: Section, index: number) => { setEditing(index); setDraft({ ...(records[section.table]?.[index] ?? emptyRow(section)) }); setStatus(""); };
+  const beginAdd = (section: Section) => { setEditing(-1); setDraft(emptyRow(section)); setStatus(""); };
+  const cancelEdit = () => { setEditing(null); setDraft({}); setStatus(""); };
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!active) return;
     setStatus("Saving...");
-    let parsedRows: unknown[];
-    try {
-      const parsed = JSON.parse(drafts[activeTable] ?? "[]");
-      if (!Array.isArray(parsed)) throw new Error("Expected an array.");
-      parsedRows = parsed;
-    } catch {
-      setStatus("JSON must be a valid array.");
-      return;
-    }
-
-    const response = await fetch("/api/admin/content", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ table: activeTable, rows: parsedRows }),
-    });
+    const response = await fetch("/api/admin/content", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: active.table, values: draft }) });
     const data = await response.json().catch(() => ({}));
-    setStatus(response.ok && data.ok ? "Saved." : data.error ?? "Save failed.");
-    if (data.rows) {
-      setDrafts((current) => ({ ...current, [activeTable]: stringify(data.rows) }));
-    }
+    if (!response.ok || !data.ok) { setStatus(data.error ?? "Could not save this entry."); return; }
+    setRecords((current) => {
+      const next = [...(current[active.table] ?? [])];
+      if (editing === -1) next.push(data.row); else if (editing !== null) next[editing] = data.row;
+      return { ...current, [active.table]: next };
+    });
+    setStatus("Saved."); setEditing(null); setDraft({});
   };
 
-  const addTemplate = () => {
-    const template = emptyTemplates[activeTable] ?? { published: true };
-    const nextRows = [...rows, template];
-    setDrafts((current) => ({ ...current, [activeTable]: stringify(nextRows) }));
+  const remove = async (section: Section, index: number) => {
+    const row = records[section.table]?.[index];
+    if (!row) return;
+    if (!row.id) { setRecords((current) => ({ ...current, [section.table]: current[section.table].filter((_, itemIndex) => itemIndex !== index) })); return; }
+    if (!window.confirm(`Delete this ${section.label.toLowerCase()} entry?`)) return;
+    const response = await fetch("/api/admin/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: section.table, id: row.id }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) { setStatus(data.error ?? "Delete failed."); return; }
+    setRecords((current) => ({ ...current, [section.table]: current[section.table].filter((_, itemIndex) => itemIndex !== index) }));
+    setStatus("Deleted.");
   };
 
-  const deleteRow = async () => {
-    if (!deleteId.trim()) {
-      setStatus("Enter an id or key to delete.");
-      return;
-    }
-
-    const confirmed = window.confirm(`Delete ${deleteId}? This cannot be undone.`);
-    if (!confirmed) return;
-
-    const response = await fetch("/api/admin/content", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ table: activeTable, id: deleteId.trim() }),
-    });
+  const updateMessage = async (id: unknown, statusValue: "read" | "archived") => {
+    const response = await fetch("/api/admin/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: statusValue }) });
     const data = await response.json().catch(() => ({}));
-    setStatus(response.ok && data.ok ? "Deleted. Refresh or reload section to sync." : data.error ?? "Delete failed.");
+    if (response.ok && data.ok) setRecords((current) => ({ ...current, contact_messages: current.contact_messages.map((row) => row.id === id ? data.message : row) }));
+    setStatus(response.ok && data.ok ? "Message updated." : data.error ?? "Message update failed.");
   };
 
   const upload = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setUploadStatus("Uploading...");
-    const form = new FormData(event.currentTarget);
-    const response = await fetch("/api/admin/upload", { method: "POST", body: form });
+    event.preventDefault(); setUploadStatus("Uploading...");
+    const response = await fetch("/api/admin/upload", { method: "POST", body: new FormData(event.currentTarget) });
     const data = await response.json().catch(() => ({}));
     setUploadStatus(response.ok && data.ok ? `Uploaded: ${data.publicUrl ?? data.upload?.path}` : data.error ?? "Upload failed.");
   };
 
+  const navButton = (target: View, label: string) => <button type="button" onClick={() => { setView(target); cancelEdit(); }} className={`rounded-lg px-4 py-3 text-left text-sm transition ${view === target ? "bg-cyan-300/15 text-cyan-100" : "text-gray-300 hover:bg-white/10"}`}>{label}</button>;
+
   return (
-    <section className="relative z-[20] mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-28 text-gray-200">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="Welcome-text text-sm uppercase">CMS Admin</p>
-          <h1 className="mt-3 text-4xl font-bold text-white">Portfolio Dashboard</h1>
-          <p className="mt-3 text-sm text-gray-400">Signed in as {email ?? "admin"}. Public design stays unchanged; this dashboard edits the CMS data behind it.</p>
-        </div>
-        <div className="flex flex-wrap gap-3 text-sm">
-          <Link href="/admin/security" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10">Security</Link>
-          <Link href="/api/auth/logout" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10">Logout</Link>
-        </div>
-      </div>
+    <section className="relative z-[20] mx-auto w-full max-w-7xl px-6 py-28 text-gray-200">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div><p className="Welcome-text text-sm uppercase">CMS Admin</p><h1 className="mt-3 text-4xl font-bold text-white">Portfolio Dashboard</h1><p className="mt-3 text-sm text-gray-400">Signed in as {email ?? "admin"}. Edit content through simple forms.</p></div><div className="flex gap-3 text-sm"><Link href="/admin/security" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10">Security</Link><Link href="/api/auth/logout" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10">Logout</Link></div></header>
 
-      <div className="grid gap-6 lg:grid-cols-[16rem_1fr]">
-        <nav className="flex flex-col gap-2 rounded-lg border border-white/10 bg-[#100b24]/80 p-3">
-          {sections.map((section) => (
-            <button key={section.table} type="button" onClick={() => setActiveTable(section.table)} className={`rounded-lg px-4 py-3 text-left text-sm transition ${activeTable === section.table ? "bg-cyan-300/15 text-cyan-100" : "hover:bg-white/10"}`}>
-              {section.label}
-            </button>
-          ))}
-        </nav>
+      <div className="mt-8 grid gap-6 lg:grid-cols-[16rem_1fr]">
+        <nav className="flex h-fit flex-col gap-1 rounded-lg border border-white/10 bg-[#100b24]/80 p-3">{navButton("overview", "Overview")}{sections.map((section) => <span key={section.table}>{navButton(section.table, section.label)}</span>)}{navButton("contact_messages", "Contact Messages")}{navButton("uploads", "Uploads")}</nav>
 
-        <div className="rounded-lg border border-white/10 bg-[#100b24]/90 p-5 shadow-xl shadow-[#2A0E61]/20">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-white">{active.label}</h2>
-              <p className="mt-2 text-sm text-gray-400">{active.help}</p>
-            </div>
-            <div className="flex flex-wrap gap-2 text-sm">
-              <button type="button" onClick={addTemplate} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10">Add row</button>
-              <button type="button" onClick={saveRows} className="button-primary rounded-lg px-4 py-2 font-semibold text-white">Save JSON</button>
-            </div>
-          </div>
+        <div className="min-w-0 rounded-lg border border-white/10 bg-[#100b24]/90 p-5 shadow-xl shadow-[#2A0E61]/20">
+          {view === "overview" && <div><h2 className="text-2xl font-bold text-white">Overview</h2><p className="mt-2 text-sm text-gray-400">Current CMS content at a glance.</p><div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{[["Profile", records.profile?.length ? "Ready" : "Needs content"], ["Hero", records.hero?.length ? "Ready" : "Needs content"], ["Skills", stats.skills], ["Projects", stats.projects], ["Experience", stats.experience], ["Certifications", stats.certifications], ["CV files", stats.resumes], ["Unread messages", stats.unread]].map(([label, value]) => <div key={label} className="rounded-lg border border-white/10 bg-white/5 p-4"><p className="text-sm text-gray-400">{label}</p><p className="mt-2 text-2xl font-semibold text-white">{value}</p></div>)}</div></div>}
 
-          <textarea value={drafts[activeTable] ?? "[]"} onChange={(event) => setDrafts((current) => ({ ...current, [activeTable]: event.target.value }))} spellCheck={false} className="mt-5 min-h-[28rem] w-full rounded-lg border border-white/10 bg-[#08021c] p-4 font-mono text-xs leading-5 text-gray-100 outline-none focus:border-cyan-300/60" />
+          {active && <div><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2 className="text-2xl font-bold text-white">{active.label}</h2><p className="mt-2 text-sm text-gray-400">{active.description}</p></div>{editing === null && (!active.singleton || !(records[active.table]?.length)) && <button type="button" onClick={() => beginAdd(active)} className="button-primary inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white"><FiPlus />Add</button>}</div>
+            {editing !== null ? <form onSubmit={save} className="mt-6"><div className="grid gap-4 md:grid-cols-2">{active.fields.map((field) => <FieldInput key={field.key} field={field} value={draft[field.key]} onChange={(value) => setDraft((current) => ({ ...current, [field.key]: value }))} />)}</div><div className="mt-6 flex flex-wrap items-center gap-3"><button type="submit" className="button-primary inline-flex items-center gap-2 rounded-lg px-5 py-3 font-semibold text-white"><FiSave />Save</button><button type="button" onClick={cancelEdit} className="rounded-lg border border-white/10 bg-white/5 px-5 py-3 text-sm hover:bg-white/10">Cancel</button><p className="text-sm text-cyan-100" aria-live="polite">{status}</p></div></form>
+            : <div className="mt-6 grid gap-3">{(records[active.table] ?? []).map((row, index) => <article key={String(row.id ?? `${active.table}-${index}`)} className="flex flex-col gap-4 rounded-lg border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><h3 className="truncate font-semibold text-white">{String(row.full_name ?? row.title ?? row.name ?? row.company ?? row.institution ?? row.label ?? `Entry ${index + 1}`)}</h3><p className="mt-1 line-clamp-2 text-sm text-gray-400">{String(row.headline ?? row.summary ?? row.role ?? row.issuer ?? row.degree ?? row.url ?? row.body ?? "")}</p></div><div className="flex shrink-0 gap-2"><button type="button" title="Edit" onClick={() => beginEdit(active, index)} className="rounded-lg border border-white/10 bg-white/5 p-2.5 hover:bg-white/10"><FiEdit2 /></button><button type="button" title="Delete" onClick={() => void remove(active, index)} className="rounded-lg border border-red-300/20 bg-red-500/10 p-2.5 text-red-100 hover:bg-red-500/20"><FiTrash2 /></button></div></article>)}{!(records[active.table]?.length) && <p className="py-8 text-center text-sm text-gray-400">No entries yet.</p>}<p className="text-sm text-cyan-100" aria-live="polite">{status}</p></div>}
+          </div>}
 
-          <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
-            <input value={deleteId} onChange={(event) => setDeleteId(event.target.value)} placeholder="id/key to delete" className="rounded-lg border border-white/10 bg-[#151030] px-4 py-2 text-sm text-white outline-none focus:border-cyan-300/60" />
-            <button type="button" onClick={deleteRow} className="rounded-lg border border-red-300/30 bg-red-500/10 px-4 py-2 text-sm text-red-100 hover:bg-red-500/20">Delete row</button>
-            <p className="min-h-6 text-sm text-cyan-100" aria-live="polite">{status}</p>
-          </div>
+          {view === "contact_messages" && <div><h2 className="text-2xl font-bold text-white">Contact Messages</h2><div className="mt-6 grid gap-4">{(records.contact_messages ?? []).map((message) => <article key={String(message.id)} className="rounded-lg border border-white/10 bg-white/5 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-white">{String(message.name)}</h3><a href={`mailto:${String(message.email)}`} className="text-sm text-cyan-200">{String(message.email)}</a></div><span className="text-xs uppercase text-gray-400">{String(message.status ?? "new")}</span></div><p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-gray-300">{String(message.message)}</p><div className="mt-4 flex gap-2"><button type="button" onClick={() => void updateMessage(message.id, "read")} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10">Mark read</button><button type="button" onClick={() => void updateMessage(message.id, "archived")} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10">Archive</button></div></article>)}{!(records.contact_messages?.length) && <p className="text-sm text-gray-400">No messages yet.</p>}</div><p className="mt-4 text-sm text-cyan-100">{status}</p></div>}
+
+          {view === "uploads" && <div><h2 className="text-2xl font-bold text-white">Uploads</h2><p className="mt-2 text-sm text-gray-400">Images, certification artwork, CV PDF and DOCX files.</p><form onSubmit={upload} className="mt-6 grid gap-4 sm:grid-cols-[12rem_1fr_auto]"><select name="bucket" className={inputClass}><option value="public-assets">Public assets</option><option value="project-images">Project images</option><option value="resumes">Resumes</option><option value="uploads">Uploads</option></select><input name="file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,.docx" required className={inputClass} /><button type="submit" className="button-primary inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-white"><FiUploadCloud />Upload</button></form><p className="mt-4 break-all text-sm text-cyan-100" aria-live="polite">{uploadStatus}</p></div>}
         </div>
       </div>
-
-      <form onSubmit={upload} className="rounded-lg border border-white/10 bg-[#100b24]/90 p-5 shadow-xl shadow-[#2A0E61]/20">
-        <h2 className="text-2xl font-bold text-white">Uploads</h2>
-        <p className="mt-2 text-sm text-gray-400">Allowed: JPG, PNG, WebP, GIF, PDF and DOCX. SVG is rejected.</p>
-        <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center">
-          <select name="bucket" className="rounded-lg border border-white/10 bg-[#151030] px-4 py-3 text-sm text-white">
-            <option value="public-assets">public-assets</option>
-            <option value="project-images">project-images</option>
-            <option value="resumes">resumes</option>
-            <option value="uploads">uploads</option>
-          </select>
-          <input name="file" type="file" required className="rounded-lg border border-white/10 bg-[#151030] px-4 py-3 text-sm text-white" />
-          <button type="submit" className="button-primary rounded-lg px-5 py-3 font-semibold text-white">Upload</button>
-        </div>
-        <p className="mt-3 min-h-6 text-sm text-cyan-100" aria-live="polite">{uploadStatus}</p>
-      </form>
     </section>
   );
 };

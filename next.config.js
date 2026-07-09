@@ -10,11 +10,11 @@ const supabaseOrigin = (() => {
 
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://va.vercel-scripts.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self' ${supabaseOrigin}`.trim(),
+  `connect-src 'self' ${supabaseOrigin} https://www.google-analytics.com https://region1.google-analytics.com https://vitals.vercel-insights.com`.trim(),
   "media-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -34,12 +34,7 @@ const securityHeaders = [
 
 const nextConfig = {
   async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: securityHeaders,
-      },
-    ];
+    return [{ source: "/(.*)", headers: securityHeaders }];
   },
 };
 

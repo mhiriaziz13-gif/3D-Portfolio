@@ -1,6 +1,6 @@
 import { EnvelopeIcon, MapPinIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
-import { FaGithub } from "react-icons/fa6";
+import { FaGithub, FaLinkedinIn } from "react-icons/fa6";
 
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
 import type { ProfileContent } from "@/lib/cms-types";
@@ -41,8 +41,9 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
             href={profile.linkedIn}
             target="_blank"
             rel="noreferrer noopener"
-            className="transition hover:text-cyan-100"
+            className="inline-flex items-center gap-2 transition hover:text-cyan-100"
           >
+            <FaLinkedinIn className="h-4 w-4 text-[#0A66C2]" />
             {profile.linkedInLabel}
           </Link>
         </div>

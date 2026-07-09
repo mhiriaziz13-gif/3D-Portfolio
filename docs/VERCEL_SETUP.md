@@ -70,3 +70,6 @@ Remove any old portfolio domain from:
 The app adds CSP, HSTS, frame protection, referrer policy, permissions policy and content-type protection through `next.config.js`.
 
 The CSP allows inline scripts/styles because Next.js and the current animation stack require framework-managed inline runtime/style behavior. Keep this documented if tightening CSP later.
+## 2026 CMS/Auth Refinement
+
+Apply `supabase/migrations/202607090001_fix_cms_auth_certifications.sql`, then optionally run `supabase/seed_ahmed_portfolio.sql`. Detailed provider, recovery and MFA steps are in `docs/AUTH_FIX_GITHUB_MFA_RESET.md`.

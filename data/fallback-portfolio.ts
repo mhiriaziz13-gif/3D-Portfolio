@@ -84,7 +84,17 @@ export const fallbackPortfolioContent: PortfolioContent = {
       sortOrder: 1,
     },
   ],
-  certifications: [],
+  certifications: [
+    {
+      name: "Fundamentals of Digital Marketing",
+      issuer: "Google",
+      date: "",
+      credentialUrl: "https://drive.google.com/file/d/10v7Z86IzuUwwvhTYdKfZji24-2-K00JN/view",
+      description: "Google Digital Marketing Fundamentals certification covering core concepts in online marketing, SEO, analytics and digital growth.",
+      tags: ["Digital Marketing", "SEO", "Analytics", "Online Marketing"],
+      sortOrder: 0,
+    },
+  ],
   resumes: fallbackResumes,
   socialLinks: [
     {

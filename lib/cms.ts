@@ -229,13 +229,19 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
         location: String(row.location ?? ""),
         sortOrder: Number(row.sort_order ?? index),
       })),
-      certifications: sortByOrder(certificationsResult.data ?? []).map((row, index) => ({
-        name: String(row.name ?? ""),
-        issuer: String(row.issuer ?? ""),
-        date: String(row.date ?? ""),
-        credentialUrl: typeof row.credential_url === "string" ? row.credential_url : undefined,
-        sortOrder: Number(row.sort_order ?? index),
-      })),
+      certifications: certificationsResult.data?.length
+        ? sortByOrder(certificationsResult.data).map((row, index) => ({
+            name: String(row.name ?? ""),
+            issuer: String(row.issuer ?? ""),
+            date: String(row.date ?? ""),
+            credentialUrl: typeof row.credential_url === "string" ? row.credential_url : undefined,
+            credentialId: typeof row.credential_id === "string" ? row.credential_id : undefined,
+            imageUrl: typeof row.image_url === "string" ? row.image_url : undefined,
+            description: typeof row.description === "string" ? row.description : undefined,
+            tags: asStringArray(row.tags),
+            sortOrder: Number(row.sort_order ?? index),
+          }))
+        : fallbackPortfolioContent.certifications,
       resumes: resumes.length ? resumes : fallbackPortfolioContent.resumes,
       socialLinks: sortByOrder(socialLinksResult.data ?? []).map((row, index) => ({
         label: String(row.label ?? ""),
@@ -257,9 +263,83 @@ export const getProjectBySlug = async (slug: string) => {
   return content.projects.find((project) => project.slug === slug) ?? null;
 };
 
+const fallbackAdminContentSnapshot = (): AdminContentSnapshot => ({
+  profile: [{
+    full_name: fallbackPortfolioContent.profile.name,
+    initials: fallbackPortfolioContent.profile.initials,
+    headline: fallbackPortfolioContent.profile.mainTitle,
+    secondary_line: fallbackPortfolioContent.profile.secondaryLine,
+    tagline: fallbackPortfolioContent.profile.tagline,
+    location: fallbackPortfolioContent.profile.location,
+    email: fallbackPortfolioContent.profile.email,
+    linkedin_url: fallbackPortfolioContent.profile.linkedIn,
+    linkedin_label: fallbackPortfolioContent.profile.linkedInLabel,
+    github_url: fallbackPortfolioContent.profile.github,
+    github_label: fallbackPortfolioContent.profile.githubLabel,
+    avatar_url: fallbackPortfolioContent.profile.avatarPath,
+    availability: fallbackPortfolioContent.profile.availability,
+    short_bio: fallbackPortfolioContent.profile.shortProfile,
+    about_text: fallbackPortfolioContent.profile.about,
+    about_focus: fallbackPortfolioContent.profile.aboutFocus,
+    published: true,
+  }],
+  hero: [{
+    eyebrow: fallbackPortfolioContent.hero.eyebrow,
+    title: fallbackPortfolioContent.hero.title,
+    subtitle: fallbackPortfolioContent.hero.subtitle,
+    tagline: fallbackPortfolioContent.hero.tagline,
+    dynamic_titles: fallbackPortfolioContent.hero.dynamicTitles,
+    primary_cta_label: fallbackPortfolioContent.hero.primaryCtaLabel,
+    primary_cta_href: fallbackPortfolioContent.hero.primaryCtaHref,
+    secondary_cta_label: fallbackPortfolioContent.hero.secondaryCtaLabel,
+    secondary_cta_href: fallbackPortfolioContent.hero.secondaryCtaHref,
+    published: true,
+  }],
+  about: [{
+    title: fallbackPortfolioContent.about.title,
+    body: fallbackPortfolioContent.about.body,
+    highlights: fallbackPortfolioContent.about.highlights,
+    avatar_url: fallbackPortfolioContent.about.avatarUrl,
+    published: true,
+  }],
+  skills: fallbackPortfolioContent.skillCategories.flatMap((category, categoryIndex) =>
+    category.skills.map((name, skillIndex) => ({ name, category: category.title, icon_key: name, description: "", sort_order: categoryIndex * 100 + skillIndex, published: true })),
+  ),
+  projects: fallbackPortfolioContent.projects.map((project, index) => ({
+    slug: project.slug, title: project.title, type: project.type ?? "", summary: project.description,
+    description: project.description, cover_image_url: project.image, tags: project.tags, tools: project.tools ?? project.tags,
+    featured: project.featured ?? false, published: true, sort_order: project.sortOrder ?? index,
+  })),
+  project_sections: [],
+  experience: fallbackPortfolioContent.experience.map((entry, index) => ({
+    company: entry.company, role: entry.role, location: entry.location, date_label: entry.date,
+    logo_url: entry.logo ?? "", logo_alt: entry.logoAlt ?? `${entry.company} logo`, points: entry.points,
+    tools: entry.tools ?? [], sort_order: entry.sortOrder ?? index, published: true,
+  })),
+  education: fallbackPortfolioContent.education.map((entry) => ({
+    institution: entry.institution, degree: entry.degree, start_date: entry.startDate, end_date: entry.endDate,
+    status: entry.status, location: entry.location, sort_order: entry.sortOrder, published: true,
+  })),
+  certifications: fallbackPortfolioContent.certifications.map((entry) => ({
+    name: entry.name, issuer: entry.issuer, date: entry.date, credential_url: entry.credentialUrl ?? "",
+    credential_id: entry.credentialId ?? "", image_url: entry.imageUrl ?? "", description: entry.description ?? "",
+    tags: entry.tags, sort_order: entry.sortOrder, published: true,
+  })),
+  resumes: fallbackPortfolioContent.resumes.map((entry) => ({
+    label: entry.title, variant: entry.variant, pdf_url: entry.pdfPath, docx_url: entry.docxPath,
+    sort_order: entry.sortOrder, published: true,
+  })),
+  social_links: fallbackPortfolioContent.socialLinks.map((entry) => ({
+    label: entry.label, url: entry.url, icon_key: entry.iconKey ?? "", sort_order: entry.sortOrder, published: true,
+  })),
+  site_settings: [],
+  contact_messages: [],
+  uploads: [],
+});
 export const getAdminContentSnapshot = async (): Promise<AdminContentSnapshot> => {
+  const fallback = fallbackAdminContentSnapshot();
   if (!isSupabaseAdminConfigured()) {
-    return {};
+    return fallback;
   }
 
   const supabase = createSupabaseAdminClient();
@@ -274,7 +354,12 @@ export const getAdminContentSnapshot = async (): Promise<AdminContentSnapshot> =
     }),
   );
 
-  return Object.fromEntries(entries) as AdminContentSnapshot;
+  return Object.fromEntries(entries.map(([table, rows]) => [
+    table,
+    rows.length || table === "contact_messages" || table === "uploads" || table === "site_settings" || table === "project_sections"
+      ? rows
+      : fallback[table] ?? [],
+  ])) as AdminContentSnapshot;
 };
 
 export const isCmsTableName = (value: string): value is CmsTableName =>

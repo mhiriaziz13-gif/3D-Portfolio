@@ -88,6 +88,10 @@ export type CertificationContent = {
   issuer: string;
   date: string;
   credentialUrl?: string;
+  credentialId?: string;
+  imageUrl?: string;
+  description?: string;
+  tags: string[];
   sortOrder: number;
 };
 

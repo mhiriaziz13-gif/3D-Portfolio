@@ -129,3 +129,6 @@ Recommended first rows:
 - social links
 
 Do not insert fake clients, fake metrics or old-owner content.
+## 2026 CMS/Auth Refinement
+
+Apply `supabase/migrations/202607090001_fix_cms_auth_certifications.sql`, then optionally run `supabase/seed_ahmed_portfolio.sql`. Detailed provider, recovery and MFA steps are in `docs/AUTH_FIX_GITHUB_MFA_RESET.md`.

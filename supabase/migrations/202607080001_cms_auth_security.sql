@@ -1,5 +1,10 @@
 create extension if not exists pgcrypto;
 
+create table if not exists public.admins (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  created_at timestamptz not null default now()
+);
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -24,11 +29,6 @@ as $$
   );
 $$;
 
-create table if not exists public.admins (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  email text,
-  created_at timestamptz not null default now()
-);
 
 create table if not exists public.profile (
   id uuid primary key default gen_random_uuid(),

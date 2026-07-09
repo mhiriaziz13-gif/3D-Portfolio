@@ -68,3 +68,14 @@
 - [ ] TOTP-only login is not available.
 - [ ] GitHub does not auto-create admin access.
 - [ ] Old domains are not hardcoded.
+## CMS and Analytics Refinement
+
+- [ ] Admin dashboard contains no raw JSON editor.
+- [ ] Prefilled Profile, Hero and About forms load.
+- [ ] Skills, Projects, Experience, Education, Certifications, Resumes and Social Links support CRUD.
+- [ ] Google certificate opens the supplied Drive credential URL.
+- [ ] GitHub callback rejects users absent from `public.admins`.
+- [ ] Recovery email reaches `/admin/reset-password` and remembered devices are revoked.
+- [ ] TOTP enrollment, verification, required-login challenge and revocation work.
+- [ ] LinkedIn icon is visible in the footer.
+- [ ] Vercel Analytics, Speed Insights and one GA tag appear in production.

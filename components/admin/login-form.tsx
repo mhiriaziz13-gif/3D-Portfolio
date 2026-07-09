@@ -15,6 +15,13 @@ type MfaFactor = {
   friendly_name?: string;
 };
 
+const loginErrorMessage = (error?: string) => ({
+  unauthorized: "This account is not authorized for portfolio administration.",
+  callback: "The authentication callback could not be completed.",
+  github: "GitHub login is not configured or unavailable.",
+  session: "The login session is missing or expired.",
+}[error ?? ""] ?? (error ? "Login could not be completed." : ""));
+
 export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, resetSuccess }: LoginFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +29,7 @@ export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, 
   const [rememberDevice, setRememberDevice] = useState(true);
   const [factorId, setFactorId] = useState<string | null>(null);
   const [mfaStep, setMfaStep] = useState(initialMfaRequired);
-  const [status, setStatus] = useState(initialError ? "Login could not be completed." : resetSuccess ? "Password updated. Please log in again." : "");
+  const [status, setStatus] = useState(initialError ? loginErrorMessage(initialError) : resetSuccess ? "Password updated. Please log in again." : "");
   const [pending, setPending] = useState(false);
 
   useEffect(() => {

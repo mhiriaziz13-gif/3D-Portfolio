@@ -1,9 +1,9 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseAdminConfigured } from "@/lib/supabase/config";
-import { getAdminContentSnapshot, isCmsTableName, sanitizeAdminRow } from "@/lib/cms";
+import { getAdminContentSnapshot, isCmsTableName } from "@/lib/cms";
 import { requireAdminApi, writeAdminAudit } from "@/lib/security/admin-auth";
 import { jsonError, jsonOk } from "@/lib/security/http";
-import { contentMutationSchema } from "@/lib/security/validation";
+import { contentMutationSchema, isEditableCmsTable, validateCmsRow } from "@/lib/security/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -39,11 +39,13 @@ export async function POST(request: Request) {
   }
 
   const parsed = contentMutationSchema.safeParse(await request.json());
-  if (!parsed.success || !parsed.data.values || !isCmsTableName(parsed.data.table)) {
+  if (!parsed.success || !parsed.data.values || !isEditableCmsTable(parsed.data.table)) {
     return jsonError("Invalid CMS mutation.", 400);
   }
 
-  const row = sanitizeAdminRow(parsed.data.values);
+  const validated = validateCmsRow(parsed.data.table, parsed.data.values);
+  if (!validated.success) return jsonError(validated.error.issues[0]?.message ?? "Invalid CMS fields.", 400);
+  const row = validated.data;
   const supabase = createSupabaseAdminClient();
   const query = row.id || row.key
     ? supabase.from(parsed.data.table).upsert(row).select("*").single()
@@ -72,19 +74,23 @@ export async function PUT(request: Request) {
   }
 
   const parsed = contentMutationSchema.safeParse(await request.json());
-  if (!parsed.success || !parsed.data.rows || !isCmsTableName(parsed.data.table)) {
+  if (!parsed.success || !parsed.data.rows || !isEditableCmsTable(parsed.data.table)) {
     return jsonError("Invalid CMS bulk mutation.", 400);
   }
 
-  const rows = parsed.data.rows.map(sanitizeAdminRow);
+  const table = parsed.data.table;
+  const validatedRows = parsed.data.rows.map((row) => validateCmsRow(table, row));
+  const invalid = validatedRows.find((row) => !row.success);
+  if (invalid && !invalid.success) return jsonError(invalid.error.issues[0]?.message ?? "Invalid CMS fields.", 400);
+  const rows = validatedRows.flatMap((row) => row.success ? [row.data] : []);
   const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.from(parsed.data.table).upsert(rows).select("*");
+  const { data, error } = await supabase.from(table).upsert(rows).select("*");
   if (error) return jsonError("Could not save CMS content.", 500);
 
   await writeAdminAudit({
     actorUserId: admin.user.id,
     action: "cms_content_updated",
-    entityType: parsed.data.table,
+    entityType: table,
     metadata: { count: rows.length },
     request,
   });
@@ -101,13 +107,12 @@ export async function DELETE(request: Request) {
   }
 
   const parsed = contentMutationSchema.safeParse(await request.json());
-  if (!parsed.success || !parsed.data.id || !isCmsTableName(parsed.data.table)) {
+  if (!parsed.success || !parsed.data.id || !isEditableCmsTable(parsed.data.table)) {
     return jsonError("Invalid CMS delete.", 400);
   }
 
   const supabase = createSupabaseAdminClient();
-  const keyColumn = parsed.data.table === "site_settings" ? "key" : "id";
-  const { error } = await supabase.from(parsed.data.table).delete().eq(keyColumn, parsed.data.id);
+  const { error } = await supabase.from(parsed.data.table).delete().eq("id", parsed.data.id);
   if (error) return jsonError("Could not delete CMS content.", 500);
 
   await writeAdminAudit({

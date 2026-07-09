@@ -8,7 +8,7 @@ export default async function ResumePage() {
 
   return (
     <main className="min-h-screen pt-16">
-      <ResumeSection resumes={content.resumes} />
+      <ResumeSection resumes={content.resumes} certifications={content.certifications} />
     </main>
   );
 }
