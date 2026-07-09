@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-
 type LoginFormProps = {
   nextPath: string;
   initialMfaRequired?: boolean;
@@ -20,8 +18,11 @@ type MfaFactor = {
 const loginErrorMessage = (error?: string) => ({
   unauthorized: "This account is not authorized for portfolio administration.",
   callback: "The authentication callback could not be completed.",
-  github: "GitHub login is not configured or unavailable.",
+  github: "GitHub login could not be started. Check the Supabase GitHub provider settings.",
+  github_oauth_failed: "GitHub OAuth was cancelled or failed. Please try again.",
   github_disabled: "GitHub is disabled in Supabase. Enable the provider and add its Client ID and Client Secret.",
+  supabase_config: "Supabase client is not configured. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+  server: "Admin access could not be verified. Check the server-side Supabase configuration.",
   session: "The login session is missing or expired.",
   recovery: "The recovery link is invalid or expired. Request a new password reset email.",
 }[error ?? ""] ?? (error ? "Login could not be completed." : ""));
@@ -57,6 +58,7 @@ export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, 
 
     const response = await fetch("/api/auth/login", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, next: nextPath }),
     });
@@ -85,29 +87,9 @@ export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, 
   const submitGitHub = async () => {
     setPending(true);
     setStatus("");
-
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath || "/admin")}`;
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "github",
-        options: { redirectTo },
-      });
-
-      if (error) {
-        setStatus("GitHub login could not be started. Check the Supabase GitHub provider configuration.");
-        setPending(false);
-        return;
-      }
-
-      if (data.url) {
-        window.location.href = data.url;
-        return;
-      }
-    } catch {
-      setStatus("GitHub login is not configured. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
-      setPending(false);
-    }
+    window.location.assign(
+      `/api/auth/oauth/github?next=${encodeURIComponent(nextPath || "/admin")}`,
+    );
   };
 
   const submitMfa = async (event: FormEvent<HTMLFormElement>) => {
@@ -121,6 +103,7 @@ export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, 
     setStatus("");
     const response = await fetch("/api/auth/mfa/verify", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ factorId, code, rememberDevice }),
     });

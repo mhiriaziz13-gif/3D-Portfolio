@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { getMfaContext, isAdminUser, writeAdminAudit } from "@/lib/security/admin-auth";
+import { getAdminMembership, getMfaContext, writeAdminAudit } from "@/lib/security/admin-auth";
 import { safeRedirect } from "@/lib/security/redirects";
+import { requireAdminMfa } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -11,15 +12,30 @@ const loginError = (origin: string, code: string) =>
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
+  const providerError = requestUrl.searchParams.get("error");
   const code = requestUrl.searchParams.get("code");
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type");
   const next = safeRedirect(requestUrl.searchParams.get("next"), "/admin");
-  const supabase = await createSupabaseServerClient();
+  if (providerError) {
+    return loginError(requestUrl.origin, "github_oauth_failed");
+  }
+
+  let supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch {
+    return loginError(requestUrl.origin, "supabase_config");
+  }
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) return loginError(requestUrl.origin, "callback");
+    if (error) {
+      return loginError(
+        requestUrl.origin,
+        next.startsWith("/admin/reset-password") ? "recovery" : "callback",
+      );
+    }
   } else if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
@@ -39,15 +55,22 @@ export async function GET(request: Request) {
   if (next.startsWith("/admin")) {
     const { data } = await supabase.auth.getUser();
     const user = data.user;
-    const admin = user ? await isAdminUser(user.id) : false;
+    const membership = user ? await getAdminMembership(user.id) : null;
 
-    if (!user || !admin) {
+    if (!user || !membership || membership.status !== "admin") {
       await supabase.auth.signOut();
-      await writeAdminAudit({ actorUserId: user?.id ?? null, action: "oauth_login_failure", metadata: { reason: "non_admin" }, request });
-      return NextResponse.redirect(new URL("/admin/login?error=unauthorized", requestUrl.origin));
+      const reason = membership?.status === "server_error" ? "server" : "unauthorized";
+      await writeAdminAudit({ actorUserId: user?.id ?? null, action: "oauth_login_failure", metadata: { reason }, request });
+      return NextResponse.redirect(new URL(`/admin/login?error=${reason}`, requestUrl.origin));
     }
 
-    const mfa = await getMfaContext(supabase, user.id, request);
+    const mfa = requireAdminMfa()
+      ? await getMfaContext(supabase, user.id, request)
+      : {
+          mfaRequired: false,
+          mfaSatisfied: true,
+          verifiedFactors: [] as unknown[],
+        };
     if (mfa.mfaRequired && !mfa.mfaSatisfied) {
       await writeAdminAudit({ actorUserId: user.id, action: "mfa_challenge_required", request });
       if (!mfa.verifiedFactors.length) {

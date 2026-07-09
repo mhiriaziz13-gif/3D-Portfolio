@@ -20,11 +20,16 @@ export async function GET(request: Request) {
     });
 
     if (error || !data.url) {
-      return loginErrorRedirect(url.origin, "github");
+      const errorCode = error?.code === "validation_failed" ? "github_disabled" : "github";
+      return loginErrorRedirect(url.origin, errorCode);
     }
 
     return NextResponse.redirect(data.url);
-  } catch {
-    return loginErrorRedirect(url.origin, "github");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    return loginErrorRedirect(
+      url.origin,
+      message.includes("environment variables") ? "supabase_config" : "github",
+    );
   }
 }

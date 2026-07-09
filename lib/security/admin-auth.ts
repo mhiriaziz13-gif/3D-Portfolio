@@ -11,7 +11,7 @@ import {
   requireAdminMfa,
 } from "@/lib/supabase/config";
 import { hashNullable, randomToken, sha256Hex } from "@/lib/security/crypto";
-import { assertSameOrigin, clientIp, jsonError, userAgent } from "@/lib/security/http";
+import { clientIp, isSameOrigin, jsonError, userAgent } from "@/lib/security/http";
 import { safeRedirect } from "@/lib/security/redirects";
 
 export const REMEMBER_DEVICE_COOKIE = "aam_admin_mfa_device";
@@ -23,6 +23,16 @@ type AuthenticatedAdmin = {
   mfaSatisfied: boolean;
   verifiedFactors: unknown[];
 };
+
+export type AdminAuthState =
+  | {
+      status: "authenticated";
+      supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+      user: User;
+    }
+  | { status: "not_authenticated" }
+  | { status: "not_admin"; user: User }
+  | { status: "server_error" };
 
 const cookieHeaderValue = (request: Request, name: string) => {
   const cookie = request.headers.get("cookie") ?? "";
@@ -38,9 +48,9 @@ const rememberCookieOptions = (expires: Date) => ({
   expires,
 });
 
-export const isAdminUser = async (userId: string) => {
+export const getAdminMembership = async (userId: string) => {
   if (!isSupabaseAdminConfigured()) {
-    return false;
+    return { status: "server_error" as const };
   }
 
   const supabase = createSupabaseAdminClient();
@@ -50,7 +60,41 @@ export const isAdminUser = async (userId: string) => {
     .eq("user_id", userId)
     .maybeSingle();
 
-  return !error && Boolean(data?.user_id);
+  if (error) {
+    return { status: "server_error" as const };
+  }
+
+  return data?.user_id
+    ? { status: "admin" as const }
+    : { status: "not_admin" as const };
+};
+
+export const isAdminUser = async (userId: string) =>
+  (await getAdminMembership(userId)).status === "admin";
+
+export const getAdminAuthState = async (): Promise<AdminAuthState> => {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.auth.getUser();
+    const user = data.user;
+
+    if (error || !user) {
+      return { status: "not_authenticated" };
+    }
+
+    const membership = await getAdminMembership(user.id);
+    if (membership.status === "server_error") {
+      return { status: "server_error" };
+    }
+
+    if (membership.status === "not_admin") {
+      return { status: "not_admin", user };
+    }
+
+    return { status: "authenticated", supabase, user };
+  } catch {
+    return { status: "server_error" };
+  }
 };
 
 export const getAdminSecurityPreference = async (userId: string) => {
@@ -69,7 +113,9 @@ export const getAdminSecurityPreference = async (userId: string) => {
     .maybeSingle();
 
   return {
-    mfa_required: requireAdminMfa() || Boolean(data?.mfa_required),
+    // The environment flag is the global enforcement gate. A stale or
+    // partially configured database preference must not lock the CMS.
+    mfa_required: requireAdminMfa(),
     remember_device_enabled: data?.remember_device_enabled ?? true,
   };
 };
@@ -199,24 +245,26 @@ export const getMfaContext = async (
 };
 
 export const getAuthenticatedAdmin = async (request?: Request) => {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
-  const user = data.user;
-
-  if (error || !user) {
+  const state = await getAdminAuthState();
+  if (state.status !== "authenticated") {
     return null;
   }
 
-  const admin = await isAdminUser(user.id);
-  if (!admin) {
-    return null;
+  if (!requireAdminMfa()) {
+    return {
+      supabase: state.supabase,
+      user: state.user,
+      mfaRequired: false,
+      mfaSatisfied: true,
+      verifiedFactors: [],
+    } satisfies AuthenticatedAdmin;
   }
 
-  const mfa = await getMfaContext(supabase, user.id, request);
+  const mfa = await getMfaContext(state.supabase, state.user.id, request);
 
   return {
-    supabase,
-    user,
+    supabase: state.supabase,
+    user: state.user,
     mfaRequired: mfa.mfaRequired,
     mfaSatisfied: mfa.mfaSatisfied,
     verifiedFactors: mfa.verifiedFactors,
@@ -256,23 +304,62 @@ export const requireAdminApi = async (
   request: Request,
   options?: { requireMfa?: boolean; sameOrigin?: boolean },
 ) => {
+  if ((options?.sameOrigin ?? true) && !isSameOrigin(request)) {
+    return {
+      ok: false as const,
+      response: jsonError("Request origin is not allowed.", 403, "origin_not_allowed"),
+    };
+  }
+
   try {
-    if (options?.sameOrigin ?? true) {
-      assertSameOrigin(request);
+    const state = await getAdminAuthState();
+    if (state.status === "not_authenticated") {
+      return {
+        ok: false as const,
+        response: jsonError("You are not signed in.", 401, "not_authenticated"),
+      };
+    }
+    if (state.status === "not_admin") {
+      return {
+        ok: false as const,
+        response: jsonError("This account is not authorized for CMS administration.", 403, "not_admin"),
+      };
+    }
+    if (state.status === "server_error") {
+      return {
+        ok: false as const,
+        response: jsonError("Admin authentication could not be verified.", 500, "server_error"),
+      };
     }
 
-    const admin = await getAuthenticatedAdmin(request);
-    if (!admin) {
-      return { ok: false as const, response: jsonError("Unauthorized.", 401) };
+    const mfa = (options?.requireMfa ?? false) && requireAdminMfa()
+      ? await getMfaContext(state.supabase, state.user.id, request)
+      : {
+          mfaRequired: false,
+          mfaSatisfied: true,
+          verifiedFactors: [] as unknown[],
+        };
+
+    if (mfa.mfaRequired && !mfa.mfaSatisfied) {
+      return {
+        ok: false as const,
+        response: jsonError("MFA verification is required.", 403, "mfa_required"),
+      };
     }
 
-    if ((options?.requireMfa ?? false) && admin.mfaRequired && !admin.mfaSatisfied) {
-      return { ok: false as const, response: jsonError("MFA verification required.", 403) };
-    }
-
-    return { ok: true as const, ...admin };
+    return {
+      ok: true as const,
+      supabase: state.supabase,
+      user: state.user,
+      mfaRequired: mfa.mfaRequired,
+      mfaSatisfied: mfa.mfaSatisfied,
+      verifiedFactors: mfa.verifiedFactors,
+    };
   } catch {
-    return { ok: false as const, response: jsonError("Unauthorized.", 401) };
+    return {
+      ok: false as const,
+      response: jsonError("Admin authentication could not be verified.", 500, "server_error"),
+    };
   }
 };
 

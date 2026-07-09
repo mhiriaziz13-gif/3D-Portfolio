@@ -1,27 +1,30 @@
-import { getMfaContext, isAdminUser, writeAdminAudit } from "@/lib/security/admin-auth";
-import { assertSameOrigin, clientIp, jsonError, jsonOk } from "@/lib/security/http";
+import { getAdminMembership, getMfaContext, writeAdminAudit } from "@/lib/security/admin-auth";
+import { clientIp, isSameOrigin, jsonError, jsonOk } from "@/lib/security/http";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { safeRedirect } from "@/lib/security/redirects";
 import { loginSchema } from "@/lib/security/validation";
+import { requireAdminMfa } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  try {
-    assertSameOrigin(request);
+  if (!isSameOrigin(request)) {
+    return jsonError("Request origin is not allowed.", 403, "origin_not_allowed");
+  }
 
+  try {
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) {
-      return jsonError("Invalid email or password.", 400);
+      return jsonError("Invalid email or password.", 400, "invalid_credentials");
     }
 
     const ip = clientIp(request);
     const emailKey = parsed.data.email.toLowerCase();
     const limited = rateLimit({ key: `login:${ip}:${emailKey}`, limit: 8, windowMs: 15 * 60 * 1000 });
     if (!limited.allowed) {
-      return jsonError("Invalid email or password.", 429);
+      return jsonError("Too many login attempts. Please try again later.", 429, "rate_limited");
     }
 
     const supabase = await createSupabaseServerClient();
@@ -32,17 +35,30 @@ export async function POST(request: Request) {
 
     if (error || !data.user) {
       await writeAdminAudit({ action: "login_failure", metadata: { reason: "auth_failed" }, request });
-      return jsonError("Invalid email or password.", 401);
+      return jsonError("Invalid email or password.", 401, "invalid_credentials");
     }
 
-    const admin = await isAdminUser(data.user.id);
-    if (!admin) {
+    const membership = await getAdminMembership(data.user.id);
+    if (membership.status !== "admin") {
       await supabase.auth.signOut();
+      if (membership.status === "server_error") {
+        return jsonError("Admin access could not be verified.", 500, "server_error");
+      }
       await writeAdminAudit({ actorUserId: data.user.id, action: "non_admin_rejected", request });
-      return jsonError("Invalid email or password.", 401);
+      return jsonError(
+        "This account is not authorized for portfolio administration.",
+        403,
+        "not_admin",
+      );
     }
 
-    const mfa = await getMfaContext(supabase, data.user.id, request);
+    const mfa = requireAdminMfa()
+      ? await getMfaContext(supabase, data.user.id, request)
+      : {
+          mfaRequired: false,
+          mfaSatisfied: true,
+          verifiedFactors: [] as unknown[],
+        };
     const next = safeRedirect(parsed.data.next, "/admin");
 
     if (mfa.mfaRequired && !mfa.mfaSatisfied) {
@@ -60,6 +76,6 @@ export async function POST(request: Request) {
     await writeAdminAudit({ actorUserId: data.user.id, action: "login_success", request });
     return jsonOk({ redirectTo: next });
   } catch {
-    return jsonError("Invalid email or password.", 401);
+    return jsonError("Login could not be completed.", 500, "server_error");
   }
 }

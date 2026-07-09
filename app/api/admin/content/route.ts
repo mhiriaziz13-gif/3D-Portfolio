@@ -12,17 +12,17 @@ export async function GET(request: Request) {
   if (!admin.ok) return admin.response;
 
   if (!isSupabaseAdminConfigured()) {
-    return jsonError("Supabase service role is not configured.", 503);
+    return jsonError("CMS server configuration is incomplete.", 500, "server_error");
   }
 
   const url = new URL(request.url);
   const table = url.searchParams.get("table");
 
   if (table) {
-    if (!isCmsTableName(table)) return jsonError("Unknown CMS table.", 400);
+    if (!isCmsTableName(table)) return jsonError("Unknown CMS table.", 400, "validation_error");
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase.from(table).select("*").limit(500);
-    if (error) return jsonError("Could not load CMS content.", 500);
+    if (error) return jsonError("Could not load CMS content.", 500, "server_error");
     return jsonOk({ table, rows: data ?? [] });
   }
 
@@ -35,16 +35,16 @@ export async function POST(request: Request) {
   if (!admin.ok) return admin.response;
 
   if (!isSupabaseAdminConfigured()) {
-    return jsonError("Supabase service role is not configured.", 503);
+    return jsonError("CMS server configuration is incomplete.", 500, "server_error");
   }
 
-  const parsed = contentMutationSchema.safeParse(await request.json());
+  const parsed = contentMutationSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success || !parsed.data.values || !isEditableCmsTable(parsed.data.table)) {
-    return jsonError("Invalid CMS mutation.", 400);
+    return jsonError("Invalid CMS mutation.", 400, "validation_error");
   }
 
   const validated = validateCmsRow(parsed.data.table, parsed.data.values);
-  if (!validated.success) return jsonError(validated.error.issues[0]?.message ?? "Invalid CMS fields.", 400);
+  if (!validated.success) return jsonError(validated.error.issues[0]?.message ?? "Invalid CMS fields.", 400, "validation_error");
   const row = validated.data;
   const supabase = createSupabaseAdminClient();
   const query = row.id || row.key
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     : supabase.from(parsed.data.table).insert(row).select("*").single();
 
   const { data, error } = await query;
-  if (error) return jsonError("Could not save CMS content.", 500);
+  if (error) return jsonError("Could not save CMS content.", 500, "server_error");
 
   await writeAdminAudit({
     actorUserId: admin.user.id,
@@ -70,22 +70,22 @@ export async function PUT(request: Request) {
   if (!admin.ok) return admin.response;
 
   if (!isSupabaseAdminConfigured()) {
-    return jsonError("Supabase service role is not configured.", 503);
+    return jsonError("CMS server configuration is incomplete.", 500, "server_error");
   }
 
-  const parsed = contentMutationSchema.safeParse(await request.json());
+  const parsed = contentMutationSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success || !parsed.data.rows || !isEditableCmsTable(parsed.data.table)) {
-    return jsonError("Invalid CMS bulk mutation.", 400);
+    return jsonError("Invalid CMS bulk mutation.", 400, "validation_error");
   }
 
   const table = parsed.data.table;
   const validatedRows = parsed.data.rows.map((row: Record<string, unknown>) => validateCmsRow(table, row));
   const invalid = validatedRows.find((row) => !row.success);
-  if (invalid && !invalid.success) return jsonError(invalid.error.issues[0]?.message ?? "Invalid CMS fields.", 400);
+  if (invalid && !invalid.success) return jsonError(invalid.error.issues[0]?.message ?? "Invalid CMS fields.", 400, "validation_error");
   const rows = validatedRows.flatMap((row) => row.success ? [row.data] : []);
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.from(table).upsert(rows).select("*");
-  if (error) return jsonError("Could not save CMS content.", 500);
+  if (error) return jsonError("Could not save CMS content.", 500, "server_error");
 
   await writeAdminAudit({
     actorUserId: admin.user.id,
@@ -103,17 +103,17 @@ export async function DELETE(request: Request) {
   if (!admin.ok) return admin.response;
 
   if (!isSupabaseAdminConfigured()) {
-    return jsonError("Supabase service role is not configured.", 503);
+    return jsonError("CMS server configuration is incomplete.", 500, "server_error");
   }
 
-  const parsed = contentMutationSchema.safeParse(await request.json());
+  const parsed = contentMutationSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success || !parsed.data.id || !isEditableCmsTable(parsed.data.table)) {
-    return jsonError("Invalid CMS delete.", 400);
+    return jsonError("Invalid CMS delete.", 400, "validation_error");
   }
 
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase.from(parsed.data.table).delete().eq("id", parsed.data.id);
-  if (error) return jsonError("Could not delete CMS content.", 500);
+  if (error) return jsonError("Could not delete CMS content.", 500, "server_error");
 
   await writeAdminAudit({
     actorUserId: admin.user.id,

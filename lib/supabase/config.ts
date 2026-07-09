@@ -3,9 +3,11 @@ const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 const readEnv = (key: string) => process.env[key]?.trim() ?? "";
 
 export const supabaseEnv = {
-  url: readEnv("NEXT_PUBLIC_SUPABASE_URL"),
-  anonKey: readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-  serviceRoleKey: readEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  // NEXT_PUBLIC values must use static property access so Next.js can inline
+  // them in browser/edge bundles.
+  url: process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "",
+  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "",
+  serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "",
 };
 
 export const isSupabaseConfigured = () => Boolean(supabaseEnv.url && supabaseEnv.anonKey);

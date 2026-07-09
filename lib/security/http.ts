@@ -4,6 +4,14 @@ import { getAllowedOrigins } from "@/lib/supabase/config";
 import { jsonHeaders } from "@/lib/security/headers";
 export { jsonHeaders } from "@/lib/security/headers";
 
+const normalizeOrigin = (value: string) => {
+  try {
+    return new URL(value).origin.toLowerCase();
+  } catch {
+    return value.trim().replace(/\/+$/, "").toLowerCase();
+  }
+};
+
 export const clientIp = (request: Request) => {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return forwarded || request.headers.get("x-real-ip") || "unknown";
@@ -12,11 +20,15 @@ export const clientIp = (request: Request) => {
 export const userAgent = (request: Request) => request.headers.get("user-agent") || "unknown";
 
 export const isSameOrigin = (request: Request) => {
-  const allowedOrigins = getAllowedOrigins();
+  const requestOrigin = normalizeOrigin(new URL(request.url).origin);
+  const allowedOrigins = new Set([
+    requestOrigin,
+    ...getAllowedOrigins().map(normalizeOrigin),
+  ]);
   const origin = request.headers.get("origin");
 
   if (origin) {
-    return allowedOrigins.includes(origin.replace(/\/+$/, ""));
+    return allowedOrigins.has(normalizeOrigin(origin));
   }
 
   const referer = request.headers.get("referer");
@@ -25,8 +37,7 @@ export const isSameOrigin = (request: Request) => {
   }
 
   try {
-    const refererOrigin = new URL(referer).origin.replace(/\/+$/, "");
-    return allowedOrigins.includes(refererOrigin);
+    return allowedOrigins.has(normalizeOrigin(new URL(referer).origin));
   } catch {
     return false;
   }
@@ -38,8 +49,11 @@ export const assertSameOrigin = (request: Request) => {
   }
 };
 
-export const jsonError = (message = "Request failed.", status = 400) =>
-  NextResponse.json({ ok: false, error: message }, { status, headers: jsonHeaders });
+export const jsonError = (message = "Request failed.", status = 400, code?: string) =>
+  NextResponse.json(
+    { ok: false, error: message, ...(code ? { code } : {}) },
+    { status, headers: jsonHeaders },
+  );
 
 export const jsonOk = <T>(data: T, status = 200) =>
   NextResponse.json({ ok: true, ...data }, { status, headers: jsonHeaders });

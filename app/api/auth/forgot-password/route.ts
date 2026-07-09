@@ -3,7 +3,6 @@ import { sha256Hex } from "@/lib/security/crypto";
 import { assertSameOrigin, clientIp, jsonOk } from "@/lib/security/http";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { forgotPasswordSchema } from "@/lib/security/validation";
-import { getAppUrl } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +20,8 @@ export async function POST(request: Request) {
     const limited = rateLimit({ key: `forgot:${ip}:${emailKey}`, limit: 5, windowMs: 30 * 60 * 1000 });
     if (!limited.allowed) return jsonOk({ message: generic });
 
-    const redirectTo = `${getAppUrl()}/auth/callback?next=${encodeURIComponent("/admin/reset-password")}`;
+    const requestOrigin = new URL(request.url).origin;
+    const redirectTo = `${requestOrigin}/auth/callback?next=${encodeURIComponent("/admin/reset-password")}`;
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo });
 

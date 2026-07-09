@@ -37,28 +37,29 @@ const hasMagicBytes = (buffer: Buffer, mime: string) => {
 export async function POST(request: Request) {
   const admin = await requireAdminApi(request, { requireMfa: true });
   if (!admin.ok) return admin.response;
-  if (!isSupabaseAdminConfigured()) return jsonError("Supabase service role is not configured.", 503);
+  if (!isSupabaseAdminConfigured()) return jsonError("CMS server configuration is incomplete.", 500, "server_error");
 
-  const formData = await request.formData();
+  const formData = await request.formData().catch(() => null);
+  if (!formData) return jsonError("Invalid upload request.", 400, "validation_error");
   const bucketParsed = bucketSchema.safeParse(String(formData.get("bucket") ?? "uploads"));
-  if (!bucketParsed.success) return jsonError("Invalid upload bucket.", 400);
+  if (!bucketParsed.success) return jsonError("Invalid upload bucket.", 400, "validation_error");
 
   const fileValue = formData.get("file");
-  if (!(fileValue instanceof File)) return jsonError("File is required.", 400);
+  if (!(fileValue instanceof File)) return jsonError("File is required.", 400, "validation_error");
 
   const ext = extensionFor(fileValue.name);
   const allowedMimes = allowedMimeByExt[ext];
   if (!allowedMimes || !allowedMimes.includes(fileValue.type) || ext === "svg") {
-    return jsonError("File type is not allowed.", 400);
+    return jsonError("File type is not allowed.", 400, "validation_error");
   }
 
   if (fileValue.size <= 0 || fileValue.size > maxFileSize) {
-    return jsonError("File size is not allowed.", 400);
+    return jsonError("File size is not allowed.", 400, "validation_error");
   }
 
   const buffer = Buffer.from(await fileValue.arrayBuffer());
   if (!hasMagicBytes(buffer, fileValue.type)) {
-    return jsonError("File signature is invalid.", 400);
+    return jsonError("File signature is invalid.", 400, "validation_error");
   }
 
   const bucket = bucketParsed.data;
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
   });
 
   if (uploaded.error) {
-    return jsonError("Upload failed.", 500);
+    return jsonError("Upload failed.", 500, "server_error");
   }
 
   const publicUrl = publicBuckets.has(bucket)
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    return jsonError("Upload metadata could not be saved.", 500);
+    return jsonError("Upload metadata could not be saved.", 500, "server_error");
   }
 
   await writeAdminAudit({ actorUserId: admin.user.id, action: "upload_created", entityType: "uploads", entityId: data.id, request });

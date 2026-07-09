@@ -125,6 +125,24 @@ const sections: Section[] = [
 const emptyRow = (section: Section): Row => Object.fromEntries(section.fields.map((field) => [field.key, field.kind === "checkbox" ? field.key === "published" : field.kind === "number" ? 0 : field.kind === "list" ? [] : ""]));
 const rowsFor = (snapshot: AdminContentSnapshot, table: CmsTableName): Row[] => (Array.isArray(snapshot[table]) ? snapshot[table] : []).filter((row): row is Row => Boolean(row) && typeof row === "object");
 const inputClass = "w-full rounded-lg border border-white/10 bg-[#151030] px-3 py-2.5 text-sm text-white outline-none transition focus:border-cyan-300/60";
+const adminApiError = (data: { code?: string; error?: string }) => {
+  switch (data.code) {
+    case "not_authenticated":
+      return "Your session expired. Please log in again.";
+    case "not_admin":
+      return "This account is not authorized to change CMS content.";
+    case "mfa_required":
+      return "MFA verification is required before this action.";
+    case "validation_error":
+      return data.error ?? "Please check the submitted fields.";
+    case "origin_not_allowed":
+      return "This request was blocked by the site origin check. Refresh and try again.";
+    case "server_error":
+      return "The server could not complete this CMS action.";
+    default:
+      return data.error ?? "The CMS action could not be completed.";
+  }
+};
 
 const FieldInput = ({ field, value, onChange }: { field: Field; value: unknown; onChange: (value: unknown) => void }) => {
   if (field.kind === "checkbox") {
@@ -164,9 +182,9 @@ export const AdminDashboard = ({ content, email }: { content: AdminContentSnapsh
     event.preventDefault();
     if (!active) return;
     setStatus("Saving...");
-    const response = await fetch("/api/admin/content", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: active.table, values: draft }) });
+    const response = await fetch("/api/admin/content", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: active.table, values: draft }) });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.ok) { setStatus(data.error ?? "Could not save this entry."); return; }
+    if (!response.ok || !data.ok) { setStatus(adminApiError(data)); return; }
     setRecords((current) => {
       const next = [...(current[active.table] ?? [])];
       if (editing === -1) next.push(data.row); else if (editing !== null) next[editing] = data.row;
@@ -180,25 +198,25 @@ export const AdminDashboard = ({ content, email }: { content: AdminContentSnapsh
     if (!row) return;
     if (!row.id) { setRecords((current) => ({ ...current, [section.table]: current[section.table].filter((_, itemIndex) => itemIndex !== index) })); return; }
     if (!window.confirm(`Delete this ${section.label.toLowerCase()} entry?`)) return;
-    const response = await fetch("/api/admin/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: section.table, id: row.id }) });
+    const response = await fetch("/api/admin/content", { method: "DELETE", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: section.table, id: row.id }) });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.ok) { setStatus(data.error ?? "Delete failed."); return; }
+    if (!response.ok || !data.ok) { setStatus(adminApiError(data)); return; }
     setRecords((current) => ({ ...current, [section.table]: current[section.table].filter((_, itemIndex) => itemIndex !== index) }));
     setStatus("Deleted.");
   };
 
   const updateMessage = async (id: unknown, statusValue: "read" | "archived") => {
-    const response = await fetch("/api/admin/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: statusValue }) });
+    const response = await fetch("/api/admin/messages", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: statusValue }) });
     const data = await response.json().catch(() => ({}));
     if (response.ok && data.ok) setRecords((current) => ({ ...current, contact_messages: current.contact_messages.map((row) => row.id === id ? data.message : row) }));
-    setStatus(response.ok && data.ok ? "Message updated." : data.error ?? "Message update failed.");
+    setStatus(response.ok && data.ok ? "Message updated." : adminApiError(data));
   };
 
   const upload = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setUploadStatus("Uploading...");
-    const response = await fetch("/api/admin/upload", { method: "POST", body: new FormData(event.currentTarget) });
+    const response = await fetch("/api/admin/upload", { method: "POST", credentials: "include", body: new FormData(event.currentTarget) });
     const data = await response.json().catch(() => ({}));
-    setUploadStatus(response.ok && data.ok ? `Uploaded: ${data.publicUrl ?? data.upload?.path}` : data.error ?? "Upload failed.");
+    setUploadStatus(response.ok && data.ok ? `Uploaded: ${data.publicUrl ?? data.upload?.path}` : adminApiError(data));
   };
 
   const navButton = (target: View, label: string) => <button type="button" onClick={() => { setView(target); cancelEdit(); }} className={`rounded-lg px-4 py-3 text-left text-sm transition ${view === target ? "bg-cyan-300/15 text-cyan-100" : "text-gray-300 hover:bg-white/10"}`}>{label}</button>;
