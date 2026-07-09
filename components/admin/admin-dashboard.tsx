@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { FiEdit2, FiPlus, FiSave, FiTrash2, FiUploadCloud } from "react-icons/fi";
 
+import { saveCmsContentAction } from "@/app/admin/actions";
 import type { AdminContentSnapshot, CmsTableName } from "@/lib/cms-types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -214,9 +215,11 @@ export const AdminDashboard = ({
     event.preventDefault();
     if (!active) return;
     setStatus("Saving...");
-    const response = await adminFetch("/api/admin/content", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table: active.table, values: draft }) }, accessToken);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.ok) { setStatus(adminApiError(data)); return; }
+    const data = await saveCmsContentAction({
+      table: active.table,
+      values: draft,
+    });
+    if (!data.ok) { setStatus(adminApiError(data)); return; }
     setRecords((current) => {
       const next = [...(current[active.table] ?? [])];
       if (editing === -1) next.push(data.row); else if (editing !== null) next[editing] = data.row;
