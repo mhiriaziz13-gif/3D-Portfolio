@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 type ProjectCardProps = {
   src: string;
@@ -16,15 +19,27 @@ export const ProjectCard = ({
   tags,
   href,
 }: ProjectCardProps) => {
+  const fallbackSrc = "/projects/project-1.png";
+  const [imageSrc, setImageSrc] = useState(src || fallbackSrc);
+
+  useEffect(() => {
+    setImageSrc(src || fallbackSrc);
+  }, [src]);
+
   return (
     <article className="group relative overflow-hidden rounded-lg border border-[#2A0E61] bg-[#08021c]/70 shadow-lg shadow-[#2A0E61]/20 backdrop-blur-sm">
       <div className="relative aspect-[16/9] overflow-hidden border-b border-white/10 bg-[#030014]">
         <Image
-          src={src}
+          src={imageSrc}
           alt={`Project visual for ${title}`}
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
           className="object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-100"
+          onError={() => {
+            if (imageSrc !== fallbackSrc) {
+              setImageSrc(fallbackSrc);
+            }
+          }}
         />
       </div>
 

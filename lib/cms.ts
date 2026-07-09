@@ -64,6 +64,34 @@ const sortByOrder = <T extends { sort_order?: number; sortOrder?: number }>(rows
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
+const localAssetAliases: Record<string, string> = {
+  "/projects/project-placeholder-1.png": "/projects/project-1.png",
+  "/projects/project-placeholder-2.png": "/projects/project-2.png",
+  "/projects/project-placeholder-3.png": "/projects/project-3.png",
+  "/projects/project-placeholder-4.png": "/projects/project-1.png",
+  "/projects/project-placeholder-5.png": "/projects/project-2.png",
+  "/companies/arabsoft.png": "/companies/arab-soft.png",
+  "/companies/confidential-client.png": "/companies/chicchac.png",
+};
+
+const normalizeCmsAssetPath = (value: unknown, fallback: string) => {
+  if (typeof value !== "string" || !value.trim()) {
+    return fallback;
+  }
+
+  let path = value.trim();
+
+  if (path.startsWith("public/")) {
+    path = `/${path.slice("public/".length)}`;
+  }
+
+  if (!path.startsWith("/") && !path.startsWith("http://") && !path.startsWith("https://")) {
+    path = `/${path}`;
+  }
+
+  return localAssetAliases[path] ?? path;
+};
+
 const fallbackOnError = (error: unknown) => {
   if (process.env.NODE_ENV !== "production") {
     console.warn("CMS fallback used:", error);
@@ -196,7 +224,10 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
         slug,
         title: String(row.title ?? "Untitled project"),
         description: String(row.summary ?? row.description ?? ""),
-        image: String(row.cover_image_url ?? row.placeholder_image_url ?? fallbackPortfolioContent.projects[index]?.image ?? "/projects/project-1.png"),
+        image: normalizeCmsAssetPath(
+          row.cover_image_url ?? row.placeholder_image_url,
+          fallbackPortfolioContent.projects[index]?.image ?? "/projects/project-1.png",
+        ),
         tags: asStringArray(row.tags),
         tools: asStringArray(row.tools),
         type: String(row.type ?? ""),
@@ -212,7 +243,10 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
       location: String(row.location ?? ""),
       date: [row.start_date, row.end_date].filter(Boolean).join(" - ") || String(row.date_label ?? ""),
       iconBg: String(row.icon_bg ?? fallbackPortfolioContent.experience[index]?.iconBg ?? "#2a0e61"),
-      logo: typeof row.logo_url === "string" && row.logo_url ? row.logo_url : undefined,
+      logo: normalizeCmsAssetPath(
+        row.logo_url,
+        fallbackPortfolioContent.experience[index]?.logo ?? "",
+      ) || undefined,
       logoAlt: String(row.logo_alt ?? `${row.company ?? "Company"} logo`),
       points: asStringArray(row.points),
       tools: asStringArray(row.tools),

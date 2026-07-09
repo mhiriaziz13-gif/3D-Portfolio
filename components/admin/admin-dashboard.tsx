@@ -147,23 +147,34 @@ const adminApiError = (data: { code?: string; error?: string }) => {
 
 const adminFetch = async (url: string, init: RequestInit, verifiedAccessToken?: string) => {
   const headers = new Headers(init.headers);
-  let accessToken = verifiedAccessToken;
+  let token = verifiedAccessToken;
 
   try {
     const supabaseClient = createSupabaseBrowserClient();
     const { data } = await supabaseClient.auth.getSession();
-    accessToken = data.session?.access_token ?? accessToken;
+    let session = data.session;
+
+    const expiresAt = session?.expires_at ?? 0;
+    const expiresSoon = expiresAt > 0 && expiresAt < Math.floor(Date.now() / 1000) + 60;
+
+    if (!session || expiresSoon) {
+      const refreshed = await supabaseClient.auth.refreshSession();
+      session = refreshed.data.session ?? session;
+    }
+
+    token = session?.access_token ?? token;
   } catch {
-    // Use the session already verified while rendering the admin page.
+    // Keep cookie-based auth available if browser session lookup or refresh fails.
   }
 
-  if (accessToken) {
-    headers.set("Authorization", `Bearer ${accessToken}`);
+  if (token && token !== "undefined" && token !== "null") {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   return fetch(url, {
     ...init,
     credentials: "include",
+    cache: "no-store",
     headers,
   });
 };
@@ -232,6 +243,12 @@ export const AdminDashboard = ({
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok || !data.ok) {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("CMS save failed", {
+          status: response.status,
+          data,
+        });
+      }
       setStatus(adminApiError(data));
       return;
     }

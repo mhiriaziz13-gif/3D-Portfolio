@@ -72,17 +72,30 @@ export const getAdminMembership = async (userId: string) => {
 export const isAdminUser = async (userId: string) =>
   (await getAdminMembership(userId)).status === "admin";
 
+const extractBearerToken = (request?: Request) => {
+  const authorization = request?.headers.get("authorization") ?? "";
+  return authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || null;
+};
+
 export const getAdminAuthState = async (request?: Request): Promise<AdminAuthState> => {
   try {
     const supabase = await createSupabaseServerClient(request);
-    const authorization = request?.headers.get("authorization") ?? "";
-    const accessToken = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
-    const { data, error } = accessToken
-      ? await supabase.auth.getUser(accessToken)
-      : await supabase.auth.getUser();
-    const user = data.user;
+    const accessToken = extractBearerToken(request);
+    let user: User | null = null;
 
-    if (error || !user) {
+    const cookieResult = await supabase.auth.getUser();
+    if (!cookieResult.error && cookieResult.data.user) {
+      user = cookieResult.data.user;
+    }
+
+    if (!user && accessToken) {
+      const bearerResult = await supabase.auth.getUser(accessToken);
+      if (!bearerResult.error && bearerResult.data.user) {
+        user = bearerResult.data.user;
+      }
+    }
+
+    if (!user) {
       return { status: "not_authenticated" };
     }
 

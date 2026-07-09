@@ -6,19 +6,22 @@ import { requireAdminMfa } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   if (process.env.NODE_ENV === "production") {
     return new NextResponse(null, { status: 404 });
   }
 
-  const state = await getAdminAuthState();
+  const state = await getAdminAuthState(request);
+  const mfaRequired = requireAdminMfa();
+
   if (state.status === "authenticated") {
     return jsonOk({
       authenticated: true,
       email: state.user.email ?? null,
       userId: state.user.id,
       isAdmin: true,
-      requireMfa: requireAdminMfa(),
+      requireMfa: mfaRequired,
+      mfaRequired,
     });
   }
 
@@ -28,7 +31,8 @@ export async function GET() {
       email: state.user.email ?? null,
       userId: state.user.id,
       isAdmin: false,
-      requireMfa: requireAdminMfa(),
+      requireMfa: mfaRequired,
+      mfaRequired,
     });
   }
 
@@ -37,7 +41,8 @@ export async function GET() {
     email: null,
     userId: null,
     isAdmin: false,
-    requireMfa: requireAdminMfa(),
+    requireMfa: mfaRequired,
+    mfaRequired,
     status: state.status,
   });
 }
