@@ -92,18 +92,37 @@ const extractBearerToken = (request?: Request) => {
 };
 
 const logAdminAuthDiagnostics = (details: {
+  method?: string;
+  pathname?: string;
+  hasBearerToken: boolean;
   cookieAuthSucceeded: boolean;
+  cookieAuthError?: string | null;
+  cookieAuthStatus?: number | null;
   bearerAuthSucceeded: boolean;
+  bearerAuthError?: string | null;
+  bearerAuthStatus?: number | null;
   finalAuthState: AdminAuthState["status"];
 }) => {
-  if (process.env.NODE_ENV !== "production") {
-    console.debug("Admin auth diagnostics", details);
+  const event = "Admin auth diagnostics";
+
+  if (process.env.NODE_ENV === "production") {
+    if (details.finalAuthState !== "authenticated") {
+      console.warn(event, details);
+    }
+    return;
   }
+
+  console.debug(event, details);
 };
 
 export const getAdminAuthState = async (request?: Request): Promise<AdminAuthState> => {
   let cookieAuthSucceeded = false;
   let bearerAuthSucceeded = false;
+  let cookieAuthError: string | null = null;
+  let cookieAuthStatus: number | null = null;
+  let bearerAuthError: string | null = null;
+  let bearerAuthStatus: number | null = null;
+  const requestUrl = request ? new URL(request.url) : null;
 
   try {
     const supabase = await createSupabaseServerClient(request);
@@ -115,6 +134,9 @@ export const getAdminAuthState = async (request?: Request): Promise<AdminAuthSta
     if (!cookieResult.error && cookieResult.data.user) {
       cookieAuthSucceeded = true;
       user = cookieResult.data.user;
+    } else if (cookieResult.error) {
+      cookieAuthError = cookieResult.error.name;
+      cookieAuthStatus = cookieResult.error.status ?? null;
     }
 
     if (!user && accessToken) {
@@ -123,13 +145,23 @@ export const getAdminAuthState = async (request?: Request): Promise<AdminAuthSta
         bearerAuthSucceeded = true;
         validatedAccessToken = accessToken;
         user = bearerResult.data.user;
+      } else if (bearerResult.error) {
+        bearerAuthError = bearerResult.error.name;
+        bearerAuthStatus = bearerResult.error.status ?? null;
       }
     }
 
     if (!user) {
       logAdminAuthDiagnostics({
+        method: request?.method,
+        pathname: requestUrl?.pathname,
+        hasBearerToken: Boolean(accessToken),
         cookieAuthSucceeded,
+        cookieAuthError,
+        cookieAuthStatus,
         bearerAuthSucceeded,
+        bearerAuthError,
+        bearerAuthStatus,
         finalAuthState: "not_authenticated",
       });
       return { status: "not_authenticated" };
@@ -138,8 +170,15 @@ export const getAdminAuthState = async (request?: Request): Promise<AdminAuthSta
     const membership = await getAdminMembership(user.id);
     if (membership.status === "server_error") {
       logAdminAuthDiagnostics({
+        method: request?.method,
+        pathname: requestUrl?.pathname,
+        hasBearerToken: Boolean(accessToken),
         cookieAuthSucceeded,
+        cookieAuthError,
+        cookieAuthStatus,
         bearerAuthSucceeded,
+        bearerAuthError,
+        bearerAuthStatus,
         finalAuthState: "server_error",
       });
       return { status: "server_error" };
@@ -147,23 +186,44 @@ export const getAdminAuthState = async (request?: Request): Promise<AdminAuthSta
 
     if (membership.status === "not_admin") {
       logAdminAuthDiagnostics({
+        method: request?.method,
+        pathname: requestUrl?.pathname,
+        hasBearerToken: Boolean(accessToken),
         cookieAuthSucceeded,
+        cookieAuthError,
+        cookieAuthStatus,
         bearerAuthSucceeded,
+        bearerAuthError,
+        bearerAuthStatus,
         finalAuthState: "not_admin",
       });
       return { status: "not_admin", user };
     }
 
     logAdminAuthDiagnostics({
+      method: request?.method,
+      pathname: requestUrl?.pathname,
+      hasBearerToken: Boolean(accessToken),
       cookieAuthSucceeded,
+      cookieAuthError,
+      cookieAuthStatus,
       bearerAuthSucceeded,
+      bearerAuthError,
+      bearerAuthStatus,
       finalAuthState: "authenticated",
     });
     return { status: "authenticated", supabase, user, accessToken: validatedAccessToken };
   } catch {
     logAdminAuthDiagnostics({
+      method: request?.method,
+      pathname: requestUrl?.pathname,
+      hasBearerToken: Boolean(extractBearerToken(request)),
       cookieAuthSucceeded,
+      cookieAuthError,
+      cookieAuthStatus,
       bearerAuthSucceeded,
+      bearerAuthError,
+      bearerAuthStatus,
       finalAuthState: "server_error",
     });
     return { status: "server_error" };
