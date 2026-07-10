@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabasePublicClient, createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   adminMfaRememberDays,
   isSupabaseAdminConfigured,
@@ -140,7 +140,8 @@ export const getAdminAuthState = async (request?: Request): Promise<AdminAuthSta
     }
 
     if (!user && accessToken) {
-      const bearerResult = await supabase.auth.getUser(accessToken);
+      const bearerSupabase = createSupabasePublicClient();
+      const bearerResult = await bearerSupabase.auth.getUser(accessToken);
       if (!bearerResult.error && bearerResult.data.user) {
         bearerAuthSucceeded = true;
         validatedAccessToken = accessToken;
@@ -386,7 +387,8 @@ export const getMfaContext = async (
 ) => {
   const preference = await getAdminSecurityPreference(userId);
   const factors = mfaFactorsFromUser(user) ?? (await supabase.auth.mfa.listFactors()).data ?? null;
-  const aal = await supabase.auth.mfa.getAuthenticatorAssuranceLevel(accessToken);
+  const aalSupabase = accessToken ? createSupabasePublicClient() : supabase;
+  const aal = await aalSupabase.auth.mfa.getAuthenticatorAssuranceLevel(accessToken);
   const verifiedFactors = factors?.totp ?? [];
   const remembered = request
     ? await validateRememberedDeviceFromRequest(userId, request)
