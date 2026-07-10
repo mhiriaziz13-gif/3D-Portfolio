@@ -2,11 +2,24 @@ const trimTrailingSlash = (value: string) => value.replace(/\/+$/, "");
 
 const readEnv = (key: string) => process.env[key]?.trim() ?? "";
 
+export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+export const supabasePublishableKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+  "";
+
+export const supabaseCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+};
+
 export const supabaseEnv = {
   // NEXT_PUBLIC values must use static property access so Next.js can inline
   // them in browser/edge bundles.
-  url: process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "",
-  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "",
+  url: supabaseUrl,
+  anonKey: supabasePublishableKey,
   serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "",
 };
 

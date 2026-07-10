@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { FormEvent, useEffect, useState } from "react";
 
 type LoginFormProps = {
@@ -87,9 +88,20 @@ export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, 
   const submitGitHub = async () => {
     setPending(true);
     setStatus("");
-    window.location.assign(
-      `/api/auth/oauth/github?next=${encodeURIComponent(nextPath || "/admin")}`,
-    );
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath || "/admin")}`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "github",
+        options: { redirectTo },
+      });
+
+      if (error) throw error;
+    } catch {
+      setStatus("Unable to continue with GitHub.");
+      setPending(false);
+    }
   };
 
   const submitMfa = async (event: FormEvent<HTMLFormElement>) => {

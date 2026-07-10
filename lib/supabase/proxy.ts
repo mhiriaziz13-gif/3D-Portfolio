@@ -1,7 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { isSupabaseConfigured, supabaseEnv } from "@/lib/supabase/config";
+import {
+  isSupabaseConfigured,
+  supabaseCookieOptions,
+  supabaseEnv,
+} from "@/lib/supabase/config";
+
+const hasSupabaseAuthCookie = (request: NextRequest) =>
+  request.cookies
+    .getAll()
+    .some(({ name }) => name.startsWith("sb-") && name.includes("auth-token"));
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -10,12 +19,21 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
+  // This mirrors the working portfolio: do not call Supabase /auth/v1/user when
+  // the request has no Supabase auth cookie. That avoids stale session_not_found
+  // checks on login, OAuth start, static routes, and fresh anonymous visits.
+  if (!hasSupabaseAuthCookie(request)) {
+    response.headers.set("Cache-Control", "private, no-store, max-age=0");
+    return response;
+  }
+
   const supabase = createServerClient(supabaseEnv.url, supabaseEnv.anonKey, {
+    cookieOptions: supabaseCookieOptions,
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet, headersToSet) {
+      setAll(cookiesToSet, headersToSet = {}) {
         cookiesToSet.forEach(({ name, value }) => {
           request.cookies.set(name, value);
         });
@@ -33,7 +51,7 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  await supabase.auth.getClaims();
 
   response.headers.set("Cache-Control", "private, no-store, max-age=0");
   return response;

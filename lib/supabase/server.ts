@@ -4,7 +4,11 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-import { assertSupabasePublicEnv, supabaseEnv } from "@/lib/supabase/config";
+import {
+  assertSupabasePublicEnv,
+  supabaseCookieOptions,
+  supabaseEnv,
+} from "@/lib/supabase/config";
 
 export const createSupabaseServerClient = async (_request?: Request) => {
   assertSupabasePublicEnv();
@@ -12,6 +16,7 @@ export const createSupabaseServerClient = async (_request?: Request) => {
   const cookieStore = await cookies();
 
   return createServerClient(supabaseEnv.url, supabaseEnv.anonKey, {
+    cookieOptions: supabaseCookieOptions,
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -22,8 +27,7 @@ export const createSupabaseServerClient = async (_request?: Request) => {
             cookieStore.set(name, value, options);
           });
         } catch {
-          // Server Components cannot always write cookies.
-          // Route handlers and Server Actions can.
+          // Server Components cannot always write cookies. The root proxy refreshes sessions before rendering.
         }
       },
     },
