@@ -9,7 +9,13 @@ export async function GET(request: Request) {
   const admin = await requireAdminApi(request, { sameOrigin: false });
   if (!admin.ok) return admin.response;
 
-  const mfa = await getMfaContext(admin.supabase, admin.user.id, request);
+  const mfa = await getMfaContext(
+    admin.supabase,
+    admin.user.id,
+    request,
+    admin.accessToken,
+    admin.user,
+  );
   let devices: unknown[] = [];
 
   if (isSupabaseAdminConfigured()) {

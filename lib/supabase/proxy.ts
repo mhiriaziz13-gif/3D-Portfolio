@@ -1,9 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
-import { type NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { isSupabaseConfigured, supabaseEnv } from "@/lib/supabase/config";
 
-export async function middleware(request: NextRequest) {
+export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   if (!isSupabaseConfigured()) {
@@ -16,11 +16,16 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet, headersToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        cookiesToSet.forEach(({ name, value }) => {
+          request.cookies.set(name, value);
+        });
+
         response = NextResponse.next({ request });
+
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
+
         Object.entries(headersToSet).forEach(([name, value]) => {
           response.headers.set(name, value);
         });
@@ -30,12 +35,6 @@ export async function middleware(request: NextRequest) {
 
   await supabase.auth.getUser();
 
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
   return response;
 }
-
-export const config = {
-  matcher: [
-    "/api/admin/:path*",
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.[^/]+$).*)",
-  ],
-};

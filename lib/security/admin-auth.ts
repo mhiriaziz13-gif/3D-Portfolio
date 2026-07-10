@@ -29,15 +29,29 @@ export type AdminAuthState =
       status: "authenticated";
       supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
       user: User;
+      accessToken?: string;
     }
   | { status: "not_authenticated" }
   | { status: "not_admin"; user: User }
   | { status: "server_error" };
 
-const cookieHeaderValue = (request: Request, name: string) => {
-  const cookie = request.headers.get("cookie") ?? "";
-  const match = cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${name}=`));
-  return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
+type RequestWithCookies = Request & {
+  cookies?: {
+    get?: (name: string) => { value?: string } | string | undefined;
+  };
+};
+
+const cookieValueFromRequest = async (request: Request, name: string) => {
+  const requestCookie = (request as RequestWithCookies).cookies?.get?.(name);
+  if (typeof requestCookie === "string") return requestCookie;
+  if (requestCookie?.value) return requestCookie.value;
+
+  try {
+    const cookieStore = await cookies();
+    return cookieStore.get(name)?.value ?? null;
+  } catch {
+    return null;
+  }
 };
 
 const rememberCookieOptions = (expires: Date) => ({
@@ -94,6 +108,7 @@ export const getAdminAuthState = async (request?: Request): Promise<AdminAuthSta
   try {
     const supabase = await createSupabaseServerClient(request);
     const accessToken = extractBearerToken(request);
+    let validatedAccessToken: string | undefined;
     let user: User | null = null;
 
     const cookieResult = await supabase.auth.getUser();
@@ -106,6 +121,7 @@ export const getAdminAuthState = async (request?: Request): Promise<AdminAuthSta
       const bearerResult = await supabase.auth.getUser(accessToken);
       if (!bearerResult.error && bearerResult.data.user) {
         bearerAuthSucceeded = true;
+        validatedAccessToken = accessToken;
         user = bearerResult.data.user;
       }
     }
@@ -143,7 +159,7 @@ export const getAdminAuthState = async (request?: Request): Promise<AdminAuthSta
       bearerAuthSucceeded,
       finalAuthState: "authenticated",
     });
-    return { status: "authenticated", supabase, user };
+    return { status: "authenticated", supabase, user, accessToken: validatedAccessToken };
   } catch {
     logAdminAuthDiagnostics({
       cookieAuthSucceeded,
@@ -206,7 +222,7 @@ export const validateRememberedDeviceToken = async (userId: string, token: strin
 };
 
 export const validateRememberedDeviceFromRequest = async (userId: string, request: Request) =>
-  validateRememberedDeviceToken(userId, cookieHeaderValue(request, REMEMBER_DEVICE_COOKIE));
+  validateRememberedDeviceToken(userId, await cookieValueFromRequest(request, REMEMBER_DEVICE_COOKIE));
 
 export const validateRememberedDeviceFromCookies = async (userId: string) => {
   const cookieStore = await cookies();
@@ -276,15 +292,42 @@ export const revokeAllRememberedDevices = async (userId: string) => {
     .is("revoked_at", null);
 };
 
+type MfaFactors = {
+  all: unknown[];
+  phone: unknown[];
+  totp: unknown[];
+  webauthn: unknown[];
+};
+
+const verifiedFactorsByType = (factors: unknown[], type: string) =>
+  factors.filter((factor) => {
+    const candidate = factor as { status?: string; factor_type?: string };
+    return candidate.status === "verified" && candidate.factor_type === type;
+  });
+
+const mfaFactorsFromUser = (user?: User): MfaFactors | null => {
+  const factors = (user as { factors?: unknown[] } | undefined)?.factors;
+  if (!Array.isArray(factors)) return null;
+
+  return {
+    all: factors,
+    phone: verifiedFactorsByType(factors, "phone"),
+    totp: verifiedFactorsByType(factors, "totp"),
+    webauthn: verifiedFactorsByType(factors, "webauthn"),
+  };
+};
+
 export const getMfaContext = async (
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   userId: string,
   request?: Request,
+  accessToken?: string,
+  user?: User,
 ) => {
   const preference = await getAdminSecurityPreference(userId);
-  const factors = await supabase.auth.mfa.listFactors();
-  const aal = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  const verifiedFactors = factors.data?.totp ?? [];
+  const factors = mfaFactorsFromUser(user) ?? (await supabase.auth.mfa.listFactors()).data ?? null;
+  const aal = await supabase.auth.mfa.getAuthenticatorAssuranceLevel(accessToken);
+  const verifiedFactors = factors?.totp ?? [];
   const remembered = request
     ? await validateRememberedDeviceFromRequest(userId, request)
     : await validateRememberedDeviceFromCookies(userId);
@@ -292,7 +335,7 @@ export const getMfaContext = async (
 
   return {
     aal: aal.data ?? null,
-    factors: factors.data ?? null,
+    factors,
     verifiedFactors,
     mfaRequired: preference.mfa_required,
     rememberDeviceEnabled: preference.remember_device_enabled,
@@ -317,7 +360,13 @@ export const getAuthenticatedAdmin = async (request?: Request) => {
     } satisfies AuthenticatedAdmin;
   }
 
-  const mfa = await getMfaContext(state.supabase, state.user.id, request);
+  const mfa = await getMfaContext(
+    state.supabase,
+    state.user.id,
+    request,
+    state.accessToken,
+    state.user,
+  );
 
   return {
     supabase: state.supabase,
@@ -390,7 +439,13 @@ export const requireAdminApi = async (
     }
 
     const mfa = (options?.requireMfa ?? false) && requireAdminMfa()
-      ? await getMfaContext(state.supabase, state.user.id, request)
+      ? await getMfaContext(
+          state.supabase,
+          state.user.id,
+          request,
+          state.accessToken,
+          state.user,
+        )
       : {
           mfaRequired: false,
           mfaSatisfied: true,
@@ -408,6 +463,7 @@ export const requireAdminApi = async (
       ok: true as const,
       supabase: state.supabase,
       user: state.user,
+      accessToken: state.accessToken,
       mfaRequired: mfa.mfaRequired,
       mfaSatisfied: mfa.mfaSatisfied,
       verifiedFactors: mfa.verifiedFactors,
