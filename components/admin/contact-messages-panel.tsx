@@ -1,6 +1,6 @@
 "use client";
 
-import { FiArchive, FiEye, FiMail } from "react-icons/fi";
+import { FiArchive, FiEye, FiMail, FiTrash2 } from "react-icons/fi";
 
 import type { ContactMessage, MessageAction } from "@/lib/cms-types";
 
@@ -9,6 +9,7 @@ type ContactMessagesPanelProps = {
   pendingMessageId: string | null;
   status: string;
   onAction: (id: string, action: MessageAction) => Promise<void>;
+  onDelete: (message: ContactMessage) => Promise<void>;
 };
 
 const formatDateTime = (value: string) => {
@@ -25,6 +26,7 @@ export function ContactMessagesPanel({
   pendingMessageId,
   status,
   onAction,
+  onDelete,
 }: ContactMessagesPanelProps) {
   const inbox = messages
     .filter((message) => message.status === "new" || message.status === "read")
@@ -100,6 +102,15 @@ export function ContactMessagesPanel({
                 >
                   <FiArchive aria-hidden="true" />
                   Archive
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => void onDelete(message)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-red-300/20 bg-red-500/10 px-3 py-2 text-sm text-red-100 hover:bg-red-500/20 disabled:cursor-wait disabled:opacity-50"
+                >
+                  <FiTrash2 aria-hidden="true" />
+                  Delete
                 </button>
               </div>
             </article>

@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
-import { FiArchive, FiEye, FiMail, FiSave } from "react-icons/fi";
+import { FiArchive, FiEye, FiMail, FiSave, FiTrash2 } from "react-icons/fi";
 
 import type {
   AdminProfileSettings,
@@ -25,6 +25,7 @@ type SettingsPanelProps = {
   messageStatus: string;
   request: AdminRequest;
   onMessageAction: (id: string, action: MessageAction) => Promise<void>;
+  onMessageDelete: (message: ContactMessage) => Promise<void>;
 };
 
 const emptyProfile: AdminProfileSettings = {
@@ -55,6 +56,7 @@ export function SettingsPanel({
   messageStatus,
   request,
   onMessageAction,
+  onMessageDelete,
 }: SettingsPanelProps) {
   const [profile, setProfile] = useState<AdminProfileSettings>(emptyProfile);
   const [loginEmail, setLoginEmail] = useState(initialEmail ?? "");
@@ -193,7 +195,7 @@ export function SettingsPanel({
               <FiArchive aria-hidden="true" />
               Archived Messages
             </h3>
-            <p className="mt-1 text-sm text-gray-400">Restore a message to the Inbox as read or unread.</p>
+            <p className="mt-1 text-sm text-gray-400">Restore a message to the Inbox or permanently delete it.</p>
           </div>
           <span className="rounded-full border border-purple-300/20 bg-purple-500/10 px-3 py-1 text-sm text-purple-100">
             {archivedMessages.length} archived
@@ -234,6 +236,15 @@ export function SettingsPanel({
                   >
                     <FiMail aria-hidden="true" />
                     Restore as unread
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => void onMessageDelete(message)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-red-300/20 bg-red-500/10 px-3 py-2 text-sm text-red-100 hover:bg-red-500/20 disabled:cursor-wait disabled:opacity-50"
+                  >
+                    <FiTrash2 aria-hidden="true" />
+                    Delete permanently
                   </button>
                 </div>
               </article>

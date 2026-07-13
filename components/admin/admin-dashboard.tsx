@@ -407,6 +407,11 @@ export const AdminDashboard = ({
           { event: "UPDATE", schema: "public", table: "contact_messages" },
           refreshFromServer,
         )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "contact_messages" },
+          refreshFromServer,
+        )
         .subscribe();
       removeRealtime = () => {
         void supabase.removeChannel(channel);
@@ -533,6 +538,33 @@ export const AdminDashboard = ({
       setMessageStatus(actionSuccessMessage[action]);
     } catch {
       setMessageStatus("The message could not be updated.");
+    } finally {
+      setPendingMessageId(null);
+    }
+  };
+
+  const deleteMessage = async (message: ContactMessage) => {
+    const sender = message.name || message.email || "this sender";
+    if (!window.confirm(`Permanently delete the message from ${sender}? This cannot be undone.`)) return;
+
+    setPendingMessageId(message.id);
+    setMessageStatus("Deleting message...");
+    try {
+      const response = await request("/api/admin/messages", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: message.id }),
+      });
+      const data = await readJsonObject(response);
+      if (!response.ok || data.ok !== true || data.deletedId !== message.id) {
+        setMessageStatus(adminApiError(data));
+        return;
+      }
+
+      setMessages((current) => current.filter((item) => item.id !== message.id));
+      setMessageStatus("Message permanently deleted.");
+    } catch {
+      setMessageStatus("The message could not be deleted.");
     } finally {
       setPendingMessageId(null);
     }
@@ -671,6 +703,7 @@ export const AdminDashboard = ({
               pendingMessageId={pendingMessageId}
               status={messageStatus}
               onAction={updateMessage}
+              onDelete={deleteMessage}
             />
           )}
 
@@ -684,6 +717,7 @@ export const AdminDashboard = ({
               messageStatus={messageStatus}
               request={request}
               onMessageAction={updateMessage}
+              onMessageDelete={deleteMessage}
             />
           )}
         </div>

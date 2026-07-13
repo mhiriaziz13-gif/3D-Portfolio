@@ -69,6 +69,10 @@ export const messageUpdateSchema = z.object({
   action: messageActionSchema,
 }).strict();
 
+export const messageDeleteSchema = z.object({
+  id: z.string().uuid(),
+}).strict();
+
 const isHttpsUrl = (value: string) => {
   try {
     return new URL(value).protocol === "https:";

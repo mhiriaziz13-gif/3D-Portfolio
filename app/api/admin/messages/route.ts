@@ -4,6 +4,7 @@ import type { MessageAction, MessageStatus } from "@/lib/cms-types";
 import { requireAdminApi, writeAdminAudit } from "@/lib/security/admin-auth";
 import { jsonError, jsonOk } from "@/lib/security/http";
 import {
+  messageDeleteSchema,
   messageStatusSchema,
   messageUpdateSchema,
 } from "@/lib/security/validation";
@@ -245,4 +246,44 @@ export async function POST(request: Request) {
       : updateResult.data,
     migrationRequired: useLegacySchema,
   });
+}
+
+export async function DELETE(request: Request) {
+  const admin = await requireAdminApi(request, { requireMfa: true });
+  if (!admin.ok) return admin.response;
+  if (!isSupabaseAdminConfigured()) {
+    return jsonError("CMS server configuration is incomplete.", 500, "server_error");
+  }
+
+  const parsed = messageDeleteSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return jsonError("Invalid message deletion.", 400, "validation_error");
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("contact_messages")
+    .delete()
+    .eq("id", parsed.data.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    logSupabaseError("delete", error);
+    return jsonError("Could not delete message.", 500, "server_error");
+  }
+  if (!data) {
+    return jsonError("Message not found.", 404, "not_found");
+  }
+
+  await writeAdminAudit({
+    actorUserId: admin.user.id,
+    action: "contact_message_deleted",
+    entityType: "contact_messages",
+    entityId: data.id,
+    metadata: { permanentlyDeleted: true },
+    request,
+  });
+
+  return jsonOk({ deletedId: data.id });
 }

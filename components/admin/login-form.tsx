@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { FormEvent, useEffect, useState } from "react";
+import { SiGithub } from "react-icons/si";
 
 type LoginFormProps = {
   nextPath: string;
@@ -163,7 +164,10 @@ export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, 
       )}
 
       <div className="mt-5 flex flex-wrap gap-3 text-sm">
-        <button type="button" onClick={() => void submitGitHub()} disabled={pending} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 transition hover:bg-white/10 disabled:opacity-60">Continue with GitHub</button>
+        <button type="button" onClick={() => void submitGitHub()} disabled={pending} className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 transition hover:bg-white/10 disabled:opacity-60">
+          <SiGithub aria-hidden="true" className="h-4 w-4 shrink-0" />
+          <span>Continue with GitHub</span>
+        </button>
         <Link href="/admin/forgot-password" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 transition hover:bg-white/10">Forgot password</Link>
         {mfaStep && <Link href="/admin/security?setup=mfa" className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 transition hover:bg-white/10">MFA setup</Link>}
       </div>
