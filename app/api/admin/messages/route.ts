@@ -15,6 +15,52 @@ export const dynamic = "force-dynamic";
 const messageViewSchema = z.enum(["inbox", "archived", "all"]);
 
 const messageFields = "id,name,email,message,source,status,created_at,updated_at,read_at,archived_at";
+const legacyMessageFields = "id,name,email,message,source,status,created_at";
+const migrationColumns = /\b(updated_at|read_at|archived_at)\b/i;
+
+type SupabaseError = {
+  code?: string;
+  message?: string;
+};
+
+type LegacyMessage = {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  source: string | null;
+  status: string;
+  created_at: string;
+};
+
+const isMissingMessageMigration = (error: SupabaseError | null) =>
+  Boolean(
+    error
+      && (error.code === "42703" || error.code === "PGRST204")
+      && migrationColumns.test(error.message ?? ""),
+  );
+
+const normalizeLegacyMessage = (message: LegacyMessage) => ({
+  ...message,
+  updated_at: message.created_at,
+  read_at: null,
+  archived_at: null,
+});
+
+const logSupabaseError = (operation: string, error: SupabaseError) => {
+  console.error("[api/admin/messages] Supabase operation failed", {
+    operation,
+    code: error.code,
+    message: error.message,
+  });
+};
+
+const logLegacyFallback = (operation: string, error: SupabaseError) => {
+  console.warn("[api/admin/messages] Using legacy contact_messages schema", {
+    operation,
+    code: error.code,
+  });
+};
 
 const actionStatus = {
   mark_read: "read",
@@ -85,8 +131,36 @@ export async function GET(request: Request) {
   }
 
   const { data, error } = await query;
-  if (error) return jsonError("Could not load messages.", 500, "server_error");
-  return jsonOk({ messages: data ?? [] });
+  if (!error) return jsonOk({ messages: data ?? [] });
+
+  if (!isMissingMessageMigration(error)) {
+    logSupabaseError("list", error);
+    return jsonError("Could not load messages.", 500, "server_error");
+  }
+
+  logLegacyFallback("list", error);
+  let legacyQuery = supabase
+    .from("contact_messages")
+    .select(legacyMessageFields)
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (viewParsed.data === "inbox") {
+    legacyQuery = legacyQuery.in("status", ["new", "read"]);
+  } else if (viewParsed.data === "archived") {
+    legacyQuery = legacyQuery.eq("status", "archived");
+  }
+
+  const legacyResult = await legacyQuery;
+  if (legacyResult.error) {
+    logSupabaseError("list_legacy", legacyResult.error);
+    return jsonError("Could not load messages.", 500, "server_error");
+  }
+
+  return jsonOk({
+    messages: (legacyResult.data ?? []).map(normalizeLegacyMessage),
+    migrationRequired: true,
+  });
 }
 
 export async function POST(request: Request) {
@@ -108,21 +182,51 @@ export async function POST(request: Request) {
     .eq("id", parsed.data.id)
     .maybeSingle();
 
-  if (existing.error) {
+  if (existing.error && !isMissingMessageMigration(existing.error)) {
+    logSupabaseError("load_for_update", existing.error);
     return jsonError("Could not load the message.", 500, "server_error");
   }
-  if (!existing.data) {
+
+  const useLegacySchema = isMissingMessageMigration(existing.error);
+  let legacyExisting: { id: string } | null = null;
+
+  if (useLegacySchema) {
+    logLegacyFallback("load_for_update", existing.error!);
+    const legacyResult = await supabase
+      .from("contact_messages")
+      .select("id")
+      .eq("id", parsed.data.id)
+      .maybeSingle();
+
+    if (legacyResult.error) {
+      logSupabaseError("load_for_update_legacy", legacyResult.error);
+      return jsonError("Could not load the message.", 500, "server_error");
+    }
+    legacyExisting = legacyResult.data;
+  }
+
+  if (useLegacySchema ? !legacyExisting : !existing.data) {
     return jsonError("Message not found.", 404, "not_found");
   }
 
-  const { data, error } = await supabase
-    .from("contact_messages")
-    .update(updateForAction(parsed.data.action, existing.data.read_at))
-    .eq("id", parsed.data.id)
-    .select(messageFields)
-    .single();
+  const updateResult = useLegacySchema
+    ? await supabase
+      .from("contact_messages")
+      .update({ status: actionStatus[parsed.data.action] })
+      .eq("id", parsed.data.id)
+      .select(legacyMessageFields)
+      .single()
+    : await supabase
+      .from("contact_messages")
+      .update(updateForAction(parsed.data.action, existing.data!.read_at))
+      .eq("id", parsed.data.id)
+      .select(messageFields)
+      .single();
 
-  if (error) return jsonError("Could not update message.", 500, "server_error");
+  if (updateResult.error) {
+    logSupabaseError(useLegacySchema ? "update_legacy" : "update", updateResult.error);
+    return jsonError("Could not update message.", 500, "server_error");
+  }
 
   await writeAdminAudit({
     actorUserId: admin.user.id,
@@ -135,5 +239,10 @@ export async function POST(request: Request) {
     request,
   });
 
-  return jsonOk({ message: data });
+  return jsonOk({
+    message: useLegacySchema
+      ? normalizeLegacyMessage(updateResult.data as LegacyMessage)
+      : updateResult.data,
+    migrationRequired: useLegacySchema,
+  });
 }
