@@ -139,3 +139,52 @@ export type CmsTableName =
   | "uploads";
 
 export type AdminContentSnapshot = Partial<Record<CmsTableName, unknown[]>>;
+
+export type MessageStatus = "new" | "read" | "archived";
+
+export type MessageAction =
+  | "mark_read"
+  | "mark_unread"
+  | "archive"
+  | "restore_read"
+  | "restore_unread";
+
+export type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  source: string | null;
+  status: MessageStatus;
+  created_at: string;
+  updated_at: string;
+  read_at: string | null;
+  archived_at: string | null;
+};
+
+export type UploadBucket =
+  | "public-assets"
+  | "project-images"
+  | "resumes"
+  | "uploads";
+
+export type UploadRecord = {
+  id: string;
+  bucket: UploadBucket;
+  path: string;
+  public_url: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  original_name: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+};
+
+export type AdminProfileSettings = {
+  displayName: string;
+  jobTitle: string;
+  phone: string;
+  avatarUrl: string;
+  timezone: string;
+  language: string;
+};

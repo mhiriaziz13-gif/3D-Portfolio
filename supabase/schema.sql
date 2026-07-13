@@ -15,6 +15,42 @@ begin
 end;
 $$;
 
+create or replace function public.set_contact_message_status_timestamps()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if new.status = 'new' then
+    new.read_at = null;
+    new.archived_at = null;
+  elsif new.status = 'read' then
+    if tg_op = 'INSERT' then
+      new.read_at = now();
+    elsif old.status is distinct from new.status then
+      new.read_at = now();
+    else
+      new.read_at = coalesce(new.read_at, now());
+    end if;
+    new.archived_at = null;
+  elsif new.status = 'archived' then
+    if tg_op = 'INSERT' then
+      new.read_at = coalesce(new.read_at, now());
+      new.archived_at = now();
+    else
+      new.read_at = coalesce(new.read_at, old.read_at, now());
+      if old.status is distinct from new.status then
+        new.archived_at = now();
+      else
+        new.archived_at = coalesce(new.archived_at, now());
+      end if;
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -208,8 +244,11 @@ create table if not exists public.contact_messages (
   source text,
   user_agent_hash text,
   ip_hash text,
-  status text not null default 'new',
-  created_at timestamptz not null default now()
+  status text not null default 'new' constraint contact_messages_status_check check (status in ('new', 'read', 'archived')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  read_at timestamptz,
+  archived_at timestamptz
 );
 
 create table if not exists public.uploads (
@@ -268,6 +307,8 @@ create or replace trigger set_certifications_updated_at before update on public.
 create or replace trigger set_resumes_updated_at before update on public.resumes for each row execute function public.set_updated_at();
 create or replace trigger set_social_links_updated_at before update on public.social_links for each row execute function public.set_updated_at();
 create or replace trigger set_site_settings_updated_at before update on public.site_settings for each row execute function public.set_updated_at();
+create or replace trigger set_contact_message_status_timestamps before insert or update of status on public.contact_messages for each row execute function public.set_contact_message_status_timestamps();
+create or replace trigger set_contact_messages_updated_at before update on public.contact_messages for each row execute function public.set_updated_at();
 create or replace trigger set_admin_security_preferences_updated_at before update on public.admin_security_preferences for each row execute function public.set_updated_at();
 
 alter table public.admins enable row level security;
@@ -322,6 +363,8 @@ create policy "Admins manage site settings" on public.site_settings for all to a
 create policy "Admins read contact messages" on public.contact_messages for select to authenticated using (public.is_admin());
 create policy "Admins update contact messages" on public.contact_messages for update to authenticated using (public.is_admin()) with check (public.is_admin());
 create policy "Admins manage uploads" on public.uploads for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+grant select on table public.contact_messages to authenticated;
 create policy "Admins read audit logs" on public.admin_audit_logs for select to authenticated using (public.is_admin());
 create policy "Admins insert audit logs" on public.admin_audit_logs for insert to authenticated with check (public.is_admin());
 create policy "Admins read own security preferences" on public.admin_security_preferences for select to authenticated using (user_id = auth.uid() and public.is_admin());
@@ -336,6 +379,7 @@ create index if not exists idx_skills_category_order on public.skills(category, 
 create index if not exists idx_experience_published_order on public.experience(published, sort_order);
 create index if not exists idx_experience_date on public.experience(start_date, end_date);
 create index if not exists idx_contact_messages_created_at on public.contact_messages(created_at desc);
+create index if not exists idx_contact_messages_status_created_at on public.contact_messages(status, created_at desc);
 create index if not exists idx_admin_audit_logs_created_at on public.admin_audit_logs(created_at desc);
 create index if not exists idx_remembered_devices_user_active on public.admin_remembered_devices(user_id, expires_at) where revoked_at is null;
 create index if not exists idx_resumes_published_order on public.resumes(published, sort_order);
@@ -358,3 +402,21 @@ create policy "Admins manage portfolio storage" on storage.objects for all to au
 ) with check (
   public.is_admin() and bucket_id in ('public-assets', 'project-images', 'resumes', 'uploads')
 );
+
+do $$
+begin
+  if exists (
+    select 1
+    from pg_publication
+    where pubname = 'supabase_realtime'
+  ) and not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'contact_messages'
+  ) then
+    alter publication supabase_realtime add table public.contact_messages;
+  end if;
+end;
+$$;

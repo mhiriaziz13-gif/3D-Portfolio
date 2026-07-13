@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
 import type { ProfileContent } from "@/lib/cms-types";
+import { isHttpsUrl } from "@/lib/utils";
 
 export const AvatarCard = ({ profile = fallbackPortfolioContent.profile }: { profile?: ProfileContent }) => {
   const shouldReduceMotion = useReducedMotion();
@@ -36,6 +37,7 @@ export const AvatarCard = ({ profile = fallbackPortfolioContent.profile }: { pro
             sizes="(min-width: 640px) 328px, 82vw"
             className="object-cover"
             priority
+            unoptimized={isHttpsUrl(profile.avatarPath)}
             onError={() => setHasImageError(true)}
           />
         ) : (

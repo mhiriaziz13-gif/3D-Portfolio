@@ -279,19 +279,17 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
         location: String(row.location ?? ""),
         sortOrder: Number(row.sort_order ?? index),
       })),
-      certifications: certificationRows.length
-        ? sortByOrder(certificationRows).map((row, index) => ({
-            name: String(row.name ?? ""),
-            issuer: String(row.issuer ?? ""),
-            date: String(row.date ?? ""),
-            credentialUrl: typeof row.credential_url === "string" ? row.credential_url : undefined,
-            credentialId: typeof row.credential_id === "string" ? row.credential_id : undefined,
-            imageUrl: typeof row.image_url === "string" ? row.image_url : undefined,
-            description: typeof row.description === "string" ? row.description : undefined,
-            tags: asStringArray(row.tags),
-            sortOrder: Number(row.sort_order ?? index),
-          }))
-        : fallbackPortfolioContent.certifications,
+      certifications: sortByOrder(certificationRows).map((row, index) => ({
+        name: String(row.name ?? ""),
+        issuer: String(row.issuer ?? ""),
+        date: String(row.date ?? ""),
+        credentialUrl: typeof row.credential_url === "string" ? row.credential_url : undefined,
+        credentialId: typeof row.credential_id === "string" ? row.credential_id : undefined,
+        imageUrl: typeof row.image_url === "string" ? row.image_url : undefined,
+        description: typeof row.description === "string" ? row.description : undefined,
+        tags: asStringArray(row.tags),
+        sortOrder: Number(row.sort_order ?? index),
+      })),
       resumes: resumes.length ? resumes : fallbackPortfolioContent.resumes,
       socialLinks: sortByOrder(socialLinkRows).map((row, index) => ({
         label: String(row.label ?? ""),
@@ -394,7 +392,7 @@ export const getAdminContentSnapshot = async (): Promise<AdminContentSnapshot> =
 
   const supabase = createSupabaseAdminClient();
   const entries = await Promise.all(
-    cmsTables.map(async (table) => {
+    publicTables.map(async (table) => {
       const query = supabase.from(table).select("*");
       const result = table === "contact_messages"
         ? await query.order("created_at", { ascending: false }).limit(100)
@@ -406,7 +404,7 @@ export const getAdminContentSnapshot = async (): Promise<AdminContentSnapshot> =
 
   return Object.fromEntries(entries.map(([table, rows]) => [
     table,
-    rows.length || table === "contact_messages" || table === "uploads" || table === "site_settings" || table === "project_sections"
+    rows.length || table === "project_sections"
       ? rows
       : fallback[table] ?? [],
   ])) as AdminContentSnapshot;

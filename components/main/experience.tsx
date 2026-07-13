@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
 import type { ExperienceContent } from "@/lib/cms-types";
+import { isHttpsUrl } from "@/lib/utils";
 
 const getInitials = (company: string) =>
   company
@@ -40,6 +41,7 @@ const TimelineMarker = ({
           fill
           sizes="96px"
           className="object-contain p-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)]"
+          unoptimized={isHttpsUrl(experience.logo)}
           onError={() => setFailedLogo(experience.logo ?? null)}
         />
       ) : (

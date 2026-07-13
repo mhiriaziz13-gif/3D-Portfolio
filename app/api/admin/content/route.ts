@@ -1,11 +1,20 @@
+import { revalidatePath } from "next/cache";
+
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseAdminConfigured } from "@/lib/supabase/config";
-import { getAdminContentSnapshot, isCmsTableName } from "@/lib/cms";
+import { getAdminContentSnapshot } from "@/lib/cms";
 import { requireAdminApi, writeAdminAudit } from "@/lib/security/admin-auth";
 import { jsonError, jsonOk } from "@/lib/security/http";
 import { contentMutationSchema, isEditableCmsTable, validateCmsRow } from "@/lib/security/validation";
 
 export const dynamic = "force-dynamic";
+
+const publicContentPaths = ["/", "/about", "/contact", "/experience", "/projects", "/resume"] as const;
+
+const revalidatePublicContent = () => {
+  for (const path of publicContentPaths) revalidatePath(path);
+  revalidatePath("/projects/[slug]", "page");
+};
 
 export async function GET(request: Request) {
   const admin = await requireAdminApi(request, { requireMfa: true, sameOrigin: false });
@@ -19,7 +28,7 @@ export async function GET(request: Request) {
   const table = url.searchParams.get("table");
 
   if (table) {
-    if (!isCmsTableName(table)) return jsonError("Unknown CMS table.", 400, "validation_error");
+    if (!isEditableCmsTable(table)) return jsonError("Unknown CMS content table.", 400, "validation_error");
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase.from(table).select("*").limit(500);
     if (error) return jsonError("Could not load CMS content.", 500, "server_error");
@@ -62,6 +71,8 @@ export async function POST(request: Request) {
     request,
   });
 
+  revalidatePublicContent();
+
   return jsonOk({ row: data });
 }
 
@@ -95,6 +106,8 @@ export async function PUT(request: Request) {
     request,
   });
 
+  revalidatePublicContent();
+
   return jsonOk({ rows: data ?? [] });
 }
 
@@ -122,6 +135,8 @@ export async function DELETE(request: Request) {
     entityId: parsed.data.id,
     request,
   });
+
+  revalidatePublicContent();
 
   return jsonOk({ message: "Deleted." });
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getProjectBySlug } from "@/lib/cms";
+import { isHttpsUrl } from "@/lib/utils";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -32,7 +33,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         </div>
 
         <div className="relative aspect-[16/9] overflow-hidden rounded-lg border border-[#2A0E61] bg-[#08021c]/70 shadow-lg shadow-[#2A0E61]/20">
-          <Image src={project.image} alt={`Project visual for ${project.title}`} fill sizes="(min-width: 1024px) 960px, 100vw" className="object-cover opacity-90" />
+          <Image src={project.image} alt={`Project visual for ${project.title}`} fill sizes="(min-width: 1024px) 960px, 100vw" className="object-cover opacity-90" unoptimized={isHttpsUrl(project.image)} />
         </div>
 
         <div className="flex flex-wrap gap-2">

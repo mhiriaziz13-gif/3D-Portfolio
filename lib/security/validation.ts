@@ -53,16 +53,69 @@ export const contentMutationSchema = z.object({
   rows: z.array(z.record(z.string(), z.unknown())).optional(),
   id: z.string().optional(),
 });
+
+export const messageStatusSchema = z.enum(["new", "read", "archived"]);
+
+export const messageActionSchema = z.enum([
+  "mark_read",
+  "mark_unread",
+  "archive",
+  "restore_read",
+  "restore_unread",
+]);
+
+export const messageUpdateSchema = z.object({
+  id: z.string().uuid(),
+  action: messageActionSchema,
+}).strict();
+
+const isHttpsUrl = (value: string) => {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const isInternalPath = (value: string) =>
+  value.startsWith("/") && !value.startsWith("//");
+
+export const assetUrlSchema = z.string().trim().max(2048).refine(
+  (value) => !value || isInternalPath(value) || isHttpsUrl(value),
+  "Enter an HTTPS URL or a site path beginning with /.",
+);
+
+export const externalUrlSchema = z.string().trim().max(2048).refine(
+  (value) => !value || isHttpsUrl(value),
+  "Enter a valid HTTPS URL.",
+);
+
+export const adminProfileSettingsSchema = z.object({
+  displayName: z.string().trim().max(120).optional().default(""),
+  jobTitle: z.string().trim().max(160).optional().default(""),
+  phone: z.string().trim().max(40).optional().default(""),
+  avatarUrl: assetUrlSchema.optional().default(""),
+  timezone: z.string().trim().max(100).optional().default(""),
+  language: z.string().trim().max(50).optional().default(""),
+}).strict();
+
 const optionalText = (max = 5000) => z.string().trim().max(max).optional().default("");
 const requiredText = (max = 500) => z.string().trim().min(1).max(max);
 const stringList = z.array(z.string().trim().min(1).max(300)).max(100).optional().default([]);
 const sortOrder = z.number().int().min(-10000).max(10000).optional().default(0);
 const published = z.boolean().optional().default(true);
 const id = z.string().uuid().optional();
-const publicLink = z.string().trim().max(2048).refine((value) => {
-  if (!value || value.startsWith("/") || value.startsWith("#") || value.startsWith("mailto:")) return true;
-  try { new URL(value); return true; } catch { return false; }
-}, "Enter a valid URL or site path.").optional().default("");
+const assetLink = assetUrlSchema.optional().default("");
+const externalLink = externalUrlSchema.optional().default("");
+const socialLink = z.string().trim().max(2048).refine((value) => {
+  if (isHttpsUrl(value)) return true;
+  return value.startsWith("mailto:") && emailSchema.safeParse(value.slice(7)).success;
+}, "Enter a valid HTTPS URL or email link.").optional().default("");
+const siteLink = z.string().trim().max(2048).refine((value) => {
+  if (!value || isInternalPath(value) || value.startsWith("#")) return true;
+  if (value.startsWith("mailto:")) return emailSchema.safeParse(value.slice(7)).success;
+  return isHttpsUrl(value);
+}, "Enter a valid HTTPS URL, email link, or site path.").optional().default("");
 
 const base = { id };
 
@@ -77,17 +130,17 @@ export const isEditableCmsTable = (value: string): value is EditableCmsTable =>
   editableCmsTables.includes(value as EditableCmsTable);
 
 const cmsRowSchemas: Record<EditableCmsTable, z.ZodType<Record<string, unknown>>> = {
-  profile: z.object({ ...base, full_name: requiredText(), initials: optionalText(20), headline: optionalText(), secondary_line: optionalText(), tagline: optionalText(), location: optionalText(), email: z.union([emailSchema, z.literal("")]).optional().default(""), linkedin_url: publicLink, linkedin_label: optionalText(), github_url: publicLink, github_label: optionalText(), avatar_url: publicLink, availability: optionalText(), short_bio: optionalText(), about_text: optionalText(10000), about_focus: stringList, published }),
-  hero: z.object({ ...base, eyebrow: optionalText(), title: optionalText(), subtitle: optionalText(), tagline: optionalText(), dynamic_titles: stringList, primary_cta_label: optionalText(), primary_cta_href: publicLink, secondary_cta_label: optionalText(), secondary_cta_href: publicLink, published }),
-  about: z.object({ ...base, title: optionalText(), body: optionalText(10000), highlights: stringList, avatar_url: publicLink, published }),
+  profile: z.object({ ...base, full_name: requiredText(), initials: optionalText(20), headline: optionalText(), secondary_line: optionalText(), tagline: optionalText(), location: optionalText(), email: z.union([emailSchema, z.literal("")]).optional().default(""), linkedin_url: externalLink, linkedin_label: optionalText(), github_url: externalLink, github_label: optionalText(), avatar_url: assetLink, availability: optionalText(), short_bio: optionalText(), about_text: optionalText(10000), about_focus: stringList, published }),
+  hero: z.object({ ...base, eyebrow: optionalText(), title: optionalText(), subtitle: optionalText(), tagline: optionalText(), dynamic_titles: stringList, primary_cta_label: optionalText(), primary_cta_href: siteLink, secondary_cta_label: optionalText(), secondary_cta_href: siteLink, published }),
+  about: z.object({ ...base, title: optionalText(), body: optionalText(10000), highlights: stringList, avatar_url: assetLink, published }),
   skills: z.object({ ...base, name: requiredText(), category: requiredText(), icon_key: optionalText(), description: optionalText(2000), sort_order: sortOrder, published }),
-  projects: z.object({ ...base, slug: requiredText(200).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use a lowercase URL slug."), title: requiredText(), type: optionalText(), summary: optionalText(5000), description: optionalText(20000), cover_image_url: publicLink, tags: stringList, tools: stringList, featured: z.boolean().optional().default(false), published, sort_order: sortOrder }),
+  projects: z.object({ ...base, slug: requiredText(200).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use a lowercase URL slug."), title: requiredText(), type: optionalText(), summary: optionalText(5000), description: optionalText(20000), cover_image_url: assetLink, tags: stringList, tools: stringList, featured: z.boolean().optional().default(false), published, sort_order: sortOrder }),
   project_sections: z.object({ ...base, project_id: z.string().uuid(), title: requiredText(), body: optionalText(20000), bullets: stringList, sort_order: sortOrder }),
-  experience: z.object({ ...base, company: requiredText(), role: requiredText(), location: optionalText(), start_date: optionalText(), end_date: optionalText(), date_label: optionalText(), logo_url: publicLink, logo_alt: optionalText(), points: stringList, tools: stringList, sort_order: sortOrder, published }),
+  experience: z.object({ ...base, company: requiredText(), role: requiredText(), location: optionalText(), start_date: optionalText(), end_date: optionalText(), date_label: optionalText(), logo_url: assetLink, logo_alt: optionalText(), points: stringList, tools: stringList, sort_order: sortOrder, published }),
   education: z.object({ ...base, institution: requiredText(), degree: requiredText(), start_date: optionalText(), end_date: optionalText(), status: optionalText(), location: optionalText(), sort_order: sortOrder, published }),
-  certifications: z.object({ ...base, name: requiredText(), issuer: optionalText(), date: optionalText(), credential_url: publicLink, credential_id: optionalText(), image_url: publicLink, description: optionalText(5000), tags: stringList, sort_order: sortOrder, published }),
-  resumes: z.object({ ...base, label: requiredText(), variant: requiredText(), pdf_url: publicLink, docx_url: publicLink, sort_order: sortOrder, published }),
-  social_links: z.object({ ...base, label: requiredText(), url: publicLink.refine((value) => Boolean(value), "URL is required."), icon_key: optionalText(), sort_order: sortOrder, published }),
+  certifications: z.object({ ...base, name: requiredText(), issuer: optionalText(), date: optionalText(), credential_url: externalLink, credential_id: optionalText(), image_url: assetLink, description: optionalText(5000), tags: stringList, sort_order: sortOrder, published }),
+  resumes: z.object({ ...base, label: requiredText(), variant: requiredText(), pdf_url: assetLink, docx_url: assetLink, sort_order: sortOrder, published }),
+  social_links: z.object({ ...base, label: requiredText(), url: socialLink.refine((value) => Boolean(value), "URL is required."), icon_key: optionalText(), sort_order: sortOrder, published }),
 };
 
 export const validateCmsRow = (table: EditableCmsTable, value: unknown) => cmsRowSchemas[table].safeParse(value);

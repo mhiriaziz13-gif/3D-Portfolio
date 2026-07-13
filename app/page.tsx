@@ -1,7 +1,9 @@
 export const revalidate = 60;
 
 import { About } from "@/components/main/about";
+import { CertificationsSection } from "@/components/main/certifications-section";
 import { Contact } from "@/components/main/contact";
+import { EducationSection } from "@/components/main/education-section";
 import { Experience } from "@/components/main/experience";
 import { Hero } from "@/components/main/hero";
 import { Projects } from "@/components/main/projects";
@@ -19,6 +21,8 @@ export default async function Home() {
       <Skills skillCategories={content.skillCategories} />
       <Projects projects={content.projects} />
       <Experience experience={content.experience} />
+      <EducationSection preview education={content.education} />
+      <CertificationsSection preview certifications={content.certifications} />
       <ResumeSection preview resumes={content.resumes} />
       <Contact profile={content.profile} />
     </main>

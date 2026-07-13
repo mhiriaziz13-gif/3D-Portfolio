@@ -1,0 +1,100 @@
+import type { AdminProfileSettings } from "@/lib/cms-types";
+import { requireAdminApi, writeAdminAudit } from "@/lib/security/admin-auth";
+import { jsonError, jsonOk } from "@/lib/security/http";
+import { adminProfileSettingsSchema } from "@/lib/security/validation";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isSupabaseAdminConfigured } from "@/lib/supabase/config";
+
+export const dynamic = "force-dynamic";
+
+const defaultProfile: AdminProfileSettings = {
+  displayName: "",
+  jobTitle: "",
+  phone: "",
+  avatarUrl: "",
+  timezone: "",
+  language: "",
+};
+
+const settingsKey = (userId: string) => `admin_profile:${userId}`;
+
+const safeProfile = (value: unknown): AdminProfileSettings => {
+  if (!value || typeof value !== "object") return defaultProfile;
+
+  const candidate = value as Record<string, unknown>;
+  const parsed = adminProfileSettingsSchema.safeParse({
+    displayName: candidate.displayName,
+    jobTitle: candidate.jobTitle,
+    phone: candidate.phone,
+    avatarUrl: candidate.avatarUrl,
+    timezone: candidate.timezone,
+    language: candidate.language,
+  });
+
+  return parsed.success ? parsed.data : defaultProfile;
+};
+
+export async function GET(request: Request) {
+  const admin = await requireAdminApi(request, { requireMfa: true, sameOrigin: false });
+  if (!admin.ok) return admin.response;
+  if (!isSupabaseAdminConfigured()) {
+    return jsonError("CMS server configuration is incomplete.", 500, "server_error");
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", settingsKey(admin.user.id))
+    .maybeSingle();
+
+  if (error) {
+    return jsonError("Could not load admin settings.", 500, "server_error");
+  }
+
+  return jsonOk({
+    profile: safeProfile(data?.value),
+    email: admin.user.email ?? "",
+  });
+}
+
+export async function POST(request: Request) {
+  const admin = await requireAdminApi(request, { requireMfa: true });
+  if (!admin.ok) return admin.response;
+  if (!isSupabaseAdminConfigured()) {
+    return jsonError("CMS server configuration is incomplete.", 500, "server_error");
+  }
+
+  const parsed = adminProfileSettingsSchema.safeParse(
+    await request.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    return jsonError("Invalid admin profile settings.", 400, "validation_error");
+  }
+
+  const key = settingsKey(admin.user.id);
+  const value = { ...parsed.data, public: false as const };
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("site_settings")
+    .upsert({ key, value }, { onConflict: "key" })
+    .select("value")
+    .single();
+
+  if (error) {
+    return jsonError("Could not save admin settings.", 500, "server_error");
+  }
+
+  await writeAdminAudit({
+    actorUserId: admin.user.id,
+    action: "admin_profile_settings_updated",
+    entityType: "site_settings",
+    entityId: key,
+    request,
+  });
+
+  return jsonOk({
+    profile: safeProfile(data.value),
+    email: admin.user.email ?? "",
+  });
+}

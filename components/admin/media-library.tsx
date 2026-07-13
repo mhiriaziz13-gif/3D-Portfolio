@@ -1,0 +1,309 @@
+"use client";
+
+import { type FormEvent, useEffect, useRef, useState } from "react";
+import {
+  FiCopy,
+  FiExternalLink,
+  FiFileText,
+  FiHardDrive,
+  FiImage,
+  FiLock,
+  FiTrash2,
+  FiUploadCloud,
+} from "react-icons/fi";
+
+import type { UploadBucket, UploadRecord } from "@/lib/cms-types";
+
+import {
+  adminApiError,
+  type AdminRequest,
+  parseUploads,
+  readJsonObject,
+} from "./admin-api";
+import { AssetImagePreview } from "./asset-image-preview";
+
+type MediaLibraryProps = {
+  initialUploads: UploadRecord[];
+  request: AdminRequest;
+};
+
+type MediaFilter = "all" | UploadBucket;
+
+const inputClass = "w-full rounded-lg border border-white/10 bg-[#151030] px-3 py-2.5 text-sm text-white outline-none transition focus:border-cyan-300/60";
+const filters: { value: MediaFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "public-assets", label: "Public assets" },
+  { value: "project-images", label: "Project images" },
+  { value: "resumes", label: "Resumes" },
+  { value: "uploads", label: "Private uploads" },
+];
+
+const bucketNotes: { bucket: UploadBucket; title: string; description: string }[] = [
+  { bucket: "public-assets", title: "Public assets", description: "Profile avatars, logos, certification images and general public images." },
+  { bucket: "project-images", title: "Project images", description: "Project cover images and project artwork." },
+  { bucket: "resumes", title: "Resumes", description: "Public PDF and DOCX CV files." },
+  { bucket: "uploads", title: "Private uploads", description: "CMS-only files. This bucket does not return a public URL and cannot be selected for public fields." },
+];
+
+const formatBytes = (bytes: number | null) => {
+  if (bytes === null || !Number.isFinite(bytes)) return "Unknown size";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const formatDateTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value || "Unknown date";
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+};
+
+const assetName = (asset: UploadRecord) => asset.original_name || asset.path.split("/").pop() || "Asset";
+const sortUploads = (uploads: UploadRecord[]) => [...uploads].sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at));
+
+export function MediaLibrary({ initialUploads, request }: MediaLibraryProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploads, setUploads] = useState(() => sortUploads(initialUploads));
+  const [filter, setFilter] = useState<MediaFilter>("all");
+  const [bucket, setBucket] = useState<UploadBucket>("public-assets");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [status, setStatus] = useState("Loading Media Library...");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadUploads = async () => {
+      try {
+        const response = await request("/api/admin/upload?limit=200", { signal: controller.signal });
+        const data = await readJsonObject(response);
+        if (!response.ok || data.ok !== true) {
+          setStatus(adminApiError(data));
+          return;
+        }
+        setUploads(sortUploads(parseUploads(data.uploads)));
+        setStatus("");
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setStatus("Could not load the Media Library.");
+        }
+      }
+    };
+
+    void loadUploads();
+    return () => controller.abort();
+  }, [request]);
+
+  const upload = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedFile) {
+      setStatus("Choose a file to upload.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.set("bucket", bucket);
+    formData.set("file", selectedFile);
+    setUploading(true);
+    setStatus("Uploading asset...");
+
+    try {
+      const response = await request("/api/admin/upload", { method: "POST", body: formData });
+      const data = await readJsonObject(response);
+      const uploaded = parseUploads([data.upload])[0];
+      if (!response.ok || data.ok !== true || !uploaded) {
+        setStatus(adminApiError(data));
+        return;
+      }
+
+      setUploads((current) => sortUploads([uploaded, ...current.filter((item) => item.id !== uploaded.id)]));
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setStatus(`${assetName(uploaded)} uploaded successfully.`);
+    } catch {
+      setStatus("The asset could not be uploaded.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const deleteUpload = async (asset: UploadRecord) => {
+    const name = assetName(asset);
+    if (!window.confirm(`Delete ${name} from storage and the Media Library? This cannot be undone.`)) return;
+
+    setDeletingId(asset.id);
+    setStatus(`Deleting ${name}...`);
+    try {
+      const response = await request("/api/admin/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: asset.id }),
+      });
+      const data = await readJsonObject(response);
+      if (!response.ok || data.ok !== true) {
+        setStatus(adminApiError(data));
+        return;
+      }
+
+      setUploads((current) => current.filter((item) => item.id !== asset.id));
+      setStatus(`${name} deleted.`);
+    } catch {
+      setStatus("The asset could not be deleted.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const copyUrl = async (asset: UploadRecord) => {
+    if (!asset.public_url) return;
+    if (!window.isSecureContext || !navigator.clipboard?.writeText) {
+      setStatus("Clipboard access is unavailable in this browser. Open the asset and copy its URL manually.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(asset.public_url);
+      setStatus(`Copied the URL for ${assetName(asset)}.`);
+    } catch {
+      setStatus("The browser blocked clipboard access.");
+    }
+  };
+
+  const filteredUploads = filter === "all" ? uploads : uploads.filter((asset) => asset.bucket === filter);
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-white">Media Library</h2>
+      <p className="mt-2 text-sm text-gray-400">Upload, inspect and reuse CMS assets. Public asset fields only offer files with a public URL.</p>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {bucketNotes.map((note) => (
+          <article key={note.bucket} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <h3 className="font-medium text-white">{note.title}</h3>
+            <p className="mt-2 text-xs leading-5 text-gray-400">{note.description}</p>
+            <p className="mt-3 font-mono text-[0.65rem] text-cyan-200">{note.bucket}</p>
+          </article>
+        ))}
+      </div>
+
+      <form onSubmit={upload} className="mt-6 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="grid gap-4 lg:grid-cols-[13rem_1fr_auto] lg:items-end">
+          <label className="grid gap-2 text-sm text-gray-300">
+            <span>Storage bucket</span>
+            <select value={bucket} onChange={(event) => setBucket(event.target.value as UploadBucket)} className={inputClass}>
+              {bucketNotes.map((note) => <option key={note.bucket} value={note.bucket}>{note.title}</option>)}
+            </select>
+          </label>
+          <label className="grid min-w-0 gap-2 text-sm text-gray-300">
+            <span>File</span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,.pdf,.docx,image/jpeg,image/png,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              required
+              onChange={(event) => setSelectedFile(event.currentTarget.files?.[0] ?? null)}
+              className={inputClass}
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={uploading}
+            className="button-primary inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+          >
+            <FiUploadCloud aria-hidden="true" />
+            {uploading ? "Uploading..." : "Upload"}
+          </button>
+        </div>
+        <p className="mt-3 text-xs text-gray-500">Accepted: JPG, PNG, WebP, PDF and DOCX, up to 10 MB. Choose the bucket that matches how the file will be used.</p>
+      </form>
+
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter Media Library">
+          {filters.map((item) => (
+            <button
+              key={item.value}
+              type="button"
+              aria-pressed={filter === item.value}
+              onClick={() => setFilter(item.value)}
+              className={filter === item.value
+                ? "rounded-lg border border-cyan-300/30 bg-cyan-400/15 px-3 py-2 text-xs font-medium text-cyan-100"
+                : "rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-gray-300 hover:bg-white/10"}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-sm text-gray-500">{filteredUploads.length} asset{filteredUploads.length === 1 ? "" : "s"}</p>
+      </div>
+
+      <p className="mt-4 min-h-5 break-words text-sm text-cyan-100" aria-live="polite">{status}</p>
+
+      <div className="mt-2 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {filteredUploads.map((asset) => {
+          const name = assetName(asset);
+          const isImage = asset.mime_type?.startsWith("image/") ?? false;
+          const isDocument = asset.mime_type === "application/pdf" || asset.mime_type?.includes("wordprocessingml") === true;
+          const isDeleting = deletingId === asset.id;
+
+          return (
+            <article key={asset.id} aria-busy={isDeleting} className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
+              <div className="p-3">
+                {isImage && asset.public_url ? (
+                  <AssetImagePreview key={asset.public_url} src={asset.public_url} alt={`Preview of ${name}`} className="h-40 w-full" />
+                ) : (
+                  <div className="flex h-40 items-center justify-center rounded-lg bg-black/20 text-cyan-200">
+                    {isDocument ? <FiFileText aria-hidden="true" className="h-10 w-10" /> : isImage ? <FiImage aria-hidden="true" className="h-10 w-10" /> : <FiHardDrive aria-hidden="true" className="h-10 w-10" />}
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 border-t border-white/10 p-4">
+                <div className="flex items-start gap-2">
+                  <h3 className="min-w-0 flex-1 truncate font-semibold text-white" title={name}>{name}</h3>
+                  {!asset.public_url && <FiLock aria-label="Private asset" className="mt-1 shrink-0 text-purple-200" />}
+                </div>
+                <dl className="mt-3 grid gap-1 text-xs text-gray-400">
+                  <div className="flex gap-2"><dt className="shrink-0 text-gray-500">Bucket:</dt><dd className="min-w-0 truncate font-mono" title={asset.bucket}>{asset.bucket}</dd></div>
+                  <div className="flex gap-2"><dt className="shrink-0 text-gray-500">Type:</dt><dd className="min-w-0 truncate" title={asset.mime_type ?? undefined}>{asset.mime_type ?? "Unknown"}</dd></div>
+                  <div className="flex gap-2"><dt className="shrink-0 text-gray-500">Size:</dt><dd>{formatBytes(asset.size_bytes)}</dd></div>
+                  <div className="flex gap-2"><dt className="shrink-0 text-gray-500">Uploaded:</dt><dd>{formatDateTime(asset.created_at)}</dd></div>
+                </dl>
+                {asset.public_url ? (
+                  <p className="mt-3 truncate font-mono text-[0.65rem] text-gray-500" title={asset.public_url}>{asset.public_url}</p>
+                ) : (
+                  <p className="mt-3 text-xs text-purple-200">Private CMS-only file — no public URL.</p>
+                )}
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {asset.public_url && (
+                    <>
+                      <button type="button" onClick={() => void copyUrl(asset)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">
+                        <FiCopy aria-hidden="true" />Copy URL
+                      </button>
+                      <a href={asset.public_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">
+                        <FiExternalLink aria-hidden="true" />Open
+                      </a>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={() => void deleteUpload(asset)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-300/20 bg-red-500/10 px-3 py-2 text-xs text-red-100 hover:bg-red-500/20 disabled:cursor-wait disabled:opacity-50"
+                  >
+                    <FiTrash2 aria-hidden="true" />{isDeleting ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      {!filteredUploads.length && status !== "Loading Media Library..." && (
+        <p className="mt-6 rounded-xl border border-dashed border-white/10 py-12 text-center text-sm text-gray-400">No assets match this filter.</p>
+      )}
+    </div>
+  );
+}

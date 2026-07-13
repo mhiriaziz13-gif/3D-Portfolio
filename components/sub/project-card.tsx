@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
+import { isHttpsUrl } from "@/lib/utils";
+
 type ProjectCardProps = {
   src: string;
   title: string;
@@ -33,6 +35,7 @@ export const ProjectCard = ({
           fill
           sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
           className="object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-100"
+          unoptimized={isHttpsUrl(imageSrc)}
           onError={() => {
             if (imageSrc !== fallbackSrc) {
               setFailedSrc(resolvedSrc);
