@@ -1,6 +1,9 @@
 import { randomUUID } from "crypto";
+import { readdir, stat } from "node:fs/promises";
+import { basename, extname, join, sep } from "node:path";
 import { z } from "zod";
 
+import type { UploadBucket, UploadRecord } from "@/lib/cms-types";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseAdminConfigured } from "@/lib/supabase/config";
 import { requireAdminApi, writeAdminAudit } from "@/lib/security/admin-auth";
@@ -35,6 +38,68 @@ const uploadDeleteSchema = z.object({
 
 const extensionFor = (name: string) => name.split(".").pop()?.toLowerCase() ?? "";
 
+const localBucketFor = (path: string): UploadBucket => {
+  const normalized = path.toLowerCase();
+  if (normalized.startsWith("projects/")) return "project-images";
+  if (normalized.startsWith("cv/")) return "resumes";
+  return "public-assets";
+};
+
+const publicUrlFor = (path: string) =>
+  `/${path.split("/").map((segment) => encodeURIComponent(segment)).join("/")}`;
+
+const readLocalPublicAssets = async (): Promise<UploadRecord[]> => {
+  const publicRoot = join(process.cwd(), "public");
+  const files: string[] = [];
+
+  const visit = async (directory: string) => {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const absolutePath = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        await visit(absolutePath);
+      } else if (entry.isFile() && allowedMimeByExt[extensionFor(entry.name)]) {
+        files.push(absolutePath);
+      }
+    }
+  };
+
+  try {
+    await visit(publicRoot);
+  } catch (error) {
+    console.error("Could not scan built-in public assets.", error);
+    return [];
+  }
+
+  const assets: UploadRecord[] = [];
+  for (const absolutePath of files) {
+    try {
+      const file = await stat(absolutePath);
+      const path = absolutePath.slice(publicRoot.length + 1).split(sep).join("/");
+      const extension = extname(path).slice(1).toLowerCase();
+      const mimeType = allowedMimeByExt[extension]?.[0];
+      if (!mimeType) continue;
+
+      assets.push({
+        id: `local:${path}`,
+        source: "local",
+        bucket: localBucketFor(path),
+        path,
+        public_url: publicUrlFor(path),
+        mime_type: mimeType,
+        size_bytes: file.size,
+        original_name: basename(path),
+        uploaded_by: null,
+        created_at: file.mtime.toISOString(),
+      });
+    } catch (error) {
+      console.error("Could not inspect a built-in public asset.", error);
+    }
+  }
+
+  return assets;
+};
+
 const hasMagicBytes = (buffer: Buffer, mime: string) => {
   if (mime === "image/png") return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
   if (mime === "image/jpeg") return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
@@ -60,6 +125,7 @@ export async function GET(request: Request) {
     return jsonError("Invalid upload filters.", 400, "validation_error");
   }
 
+  const localAssetsPromise = readLocalPublicAssets();
   const supabase = createSupabaseAdminClient();
   let query = supabase
     .from("uploads")
@@ -73,7 +139,19 @@ export async function GET(request: Request) {
 
   const { data, error } = await query;
   if (error) return jsonError("Could not load uploads.", 500, "server_error");
-  return jsonOk({ uploads: data ?? [] });
+
+  const localAssets = (await localAssetsPromise).filter((asset) =>
+    !parsed.data.bucket || asset.bucket === parsed.data.bucket,
+  );
+  const storageAssets = (data ?? []).map((asset) => ({
+    ...asset,
+    source: "storage" as const,
+  }));
+  const uploads = [...storageAssets, ...localAssets]
+    .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))
+    .slice(0, parsed.data.limit);
+
+  return jsonOk({ uploads });
 }
 
 export async function POST(request: Request) {

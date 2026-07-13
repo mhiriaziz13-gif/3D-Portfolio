@@ -522,7 +522,7 @@ export const getAdminSecurityPreference = async (
   const supabase =
     createSupabaseAdminClient();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("admin_security_preferences")
     .select(
       "mfa_required, remember_device_enabled",
@@ -530,12 +530,14 @@ export const getAdminSecurityPreference = async (
     .eq("user_id", userId)
     .maybeSingle();
 
+  if (error) {
+    throw new Error("Could not load admin security preferences.");
+  }
+
   return {
-    /*
-     * The environment flag is the global
-     * enforcement gate.
-     */
-    mfa_required: requireAdminMfa(),
+    mfa_required:
+      requireAdminMfa() ||
+      Boolean(data?.mfa_required),
 
     remember_device_enabled:
       data?.remember_device_enabled ?? true,
@@ -835,14 +837,17 @@ export const getMfaContext = async (
   const verifiedFactors =
     factors?.totp ?? [];
 
-  const remembered = request
-    ? await validateRememberedDeviceFromRequest(
-        userId,
-        request,
-      )
-    : await validateRememberedDeviceFromCookies(
-        userId,
-      );
+  const remembered =
+    preference.remember_device_enabled
+      ? request
+        ? await validateRememberedDeviceFromRequest(
+            userId,
+            request,
+          )
+        : await validateRememberedDeviceFromCookies(
+            userId,
+          )
+      : false;
 
   const currentLevel =
     aal.data?.currentLevel ?? null;
@@ -876,16 +881,6 @@ export const getAuthenticatedAdmin = async (
     state.status !== "authenticated"
   ) {
     return null;
-  }
-
-  if (!requireAdminMfa()) {
-    return {
-      supabase: state.supabase,
-      user: state.user,
-      mfaRequired: false,
-      mfaSatisfied: true,
-      verifiedFactors: [],
-    } satisfies AuthenticatedAdmin;
   }
 
   const mfa = await getMfaContext(
@@ -1035,8 +1030,7 @@ export const requireAdminApi = async (
     }
 
     const mfa =
-      (options?.requireMfa ?? false) &&
-      requireAdminMfa()
+      options?.requireMfa ?? false
         ? await getMfaContext(
             state.supabase,
             state.user.id,

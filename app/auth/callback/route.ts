@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { getAdminMembership, getMfaContext, writeAdminAudit } from "@/lib/security/admin-auth";
 import { noStoreHeaders } from "@/lib/security/headers";
 import { safeRedirect } from "@/lib/security/redirects";
-import { requireAdminMfa } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -68,13 +67,7 @@ export async function GET(request: Request) {
       return loginError(requestUrl.origin, reason);
     }
 
-    const mfa = requireAdminMfa()
-      ? await getMfaContext(supabase, user.id, request)
-      : {
-          mfaRequired: false,
-          mfaSatisfied: true,
-          verifiedFactors: [] as unknown[],
-        };
+    const mfa = await getMfaContext(supabase, user.id, request);
 
     if (mfa.mfaRequired && !mfa.mfaSatisfied) {
       await writeAdminAudit({ actorUserId: user.id, action: "mfa_challenge_required", request });

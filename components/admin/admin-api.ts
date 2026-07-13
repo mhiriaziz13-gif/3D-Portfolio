@@ -70,6 +70,7 @@ export const parseUploads = (value: unknown): UploadRecord[] => {
 
     return [{
       id,
+      source: item.source === "local" ? "local" : "storage",
       bucket,
       path,
       public_url: safePublicAssetUrl(item.public_url),

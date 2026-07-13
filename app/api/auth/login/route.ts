@@ -3,7 +3,6 @@ import { clientIp, isSameOrigin, jsonError, jsonOk } from "@/lib/security/http";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { safeRedirect } from "@/lib/security/redirects";
 import { loginSchema } from "@/lib/security/validation";
-import { requireAdminMfa } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -52,13 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const mfa = requireAdminMfa()
-      ? await getMfaContext(supabase, data.user.id, request)
-      : {
-          mfaRequired: false,
-          mfaSatisfied: true,
-          verifiedFactors: [] as unknown[],
-        };
+    const mfa = await getMfaContext(supabase, data.user.id, request);
     const next = safeRedirect(parsed.data.next, "/admin");
 
     if (mfa.mfaRequired && !mfa.mfaSatisfied) {

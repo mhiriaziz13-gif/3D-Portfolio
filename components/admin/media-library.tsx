@@ -175,7 +175,7 @@ export function MediaLibrary({ initialUploads, request }: MediaLibraryProps) {
   return (
     <div>
       <h2 className="text-2xl font-bold text-white">Media Library</h2>
-      <p className="mt-2 text-sm text-gray-400">Upload, inspect and reuse CMS assets. Public asset fields only offer files with a public URL.</p>
+      <p className="mt-2 text-sm text-gray-400">Upload, inspect and reuse CMS assets. Repository files under public are included as read-only built-in assets.</p>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {bucketNotes.map((note) => (
@@ -245,6 +245,7 @@ export function MediaLibrary({ initialUploads, request }: MediaLibraryProps) {
           const isImage = asset.mime_type?.startsWith("image/") ?? false;
           const isDocument = asset.mime_type === "application/pdf" || asset.mime_type?.includes("wordprocessingml") === true;
           const isDeleting = deletingId === asset.id;
+          const isBuiltIn = asset.source === "local";
 
           return (
             <article key={asset.id} aria-busy={isDeleting} className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
@@ -267,7 +268,8 @@ export function MediaLibrary({ initialUploads, request }: MediaLibraryProps) {
                   <div className="flex gap-2"><dt className="shrink-0 text-gray-500">Bucket:</dt><dd className="min-w-0 truncate font-mono" title={asset.bucket}>{asset.bucket}</dd></div>
                   <div className="flex gap-2"><dt className="shrink-0 text-gray-500">Type:</dt><dd className="min-w-0 truncate" title={asset.mime_type ?? undefined}>{asset.mime_type ?? "Unknown"}</dd></div>
                   <div className="flex gap-2"><dt className="shrink-0 text-gray-500">Size:</dt><dd>{formatBytes(asset.size_bytes)}</dd></div>
-                  <div className="flex gap-2"><dt className="shrink-0 text-gray-500">Uploaded:</dt><dd>{formatDateTime(asset.created_at)}</dd></div>
+                  <div className="flex gap-2"><dt className="shrink-0 text-gray-500">Source:</dt><dd>{isBuiltIn ? "Built-in file" : "Supabase Storage"}</dd></div>
+                  <div className="flex gap-2"><dt className="shrink-0 text-gray-500">{isBuiltIn ? "Modified:" : "Uploaded:"}</dt><dd>{formatDateTime(asset.created_at)}</dd></div>
                 </dl>
                 {asset.public_url ? (
                   <p className="mt-3 truncate font-mono text-[0.65rem] text-gray-500" title={asset.public_url}>{asset.public_url}</p>
@@ -286,14 +288,20 @@ export function MediaLibrary({ initialUploads, request }: MediaLibraryProps) {
                       </a>
                     </>
                   )}
-                  <button
-                    type="button"
-                    disabled={isDeleting}
-                    onClick={() => void deleteUpload(asset)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-300/20 bg-red-500/10 px-3 py-2 text-xs text-red-100 hover:bg-red-500/20 disabled:cursor-wait disabled:opacity-50"
-                  >
-                    <FiTrash2 aria-hidden="true" />{isDeleting ? "Deleting..." : "Delete"}
-                  </button>
+                  {isBuiltIn ? (
+                    <span className="inline-flex items-center rounded-lg border border-cyan-300/15 bg-cyan-400/5 px-3 py-2 text-xs text-cyan-100">
+                      Read-only built-in
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isDeleting}
+                      onClick={() => void deleteUpload(asset)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-300/20 bg-red-500/10 px-3 py-2 text-xs text-red-100 hover:bg-red-500/20 disabled:cursor-wait disabled:opacity-50"
+                    >
+                      <FiTrash2 aria-hidden="true" />{isDeleting ? "Deleting..." : "Delete"}
+                    </button>
+                  )}
                 </div>
               </div>
             </article>

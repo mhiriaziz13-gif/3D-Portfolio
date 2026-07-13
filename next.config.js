@@ -8,13 +8,26 @@ const supabaseOrigin = (() => {
   }
 })();
 
+const supabaseRealtimeOrigin = supabaseOrigin
+  .replace(/^https:/, "wss:")
+  .replace(/^http:/, "ws:");
+
+const connectSources = [
+  "'self'",
+  supabaseOrigin,
+  supabaseRealtimeOrigin,
+  "https://www.google-analytics.com",
+  "https://region1.google-analytics.com",
+  "https://vitals.vercel-insights.com",
+].filter(Boolean).join(" ");
+
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://va.vercel-scripts.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self' ${supabaseOrigin} https://www.google-analytics.com https://region1.google-analytics.com https://vitals.vercel-insights.com`.trim(),
+  `connect-src ${connectSources}`,
   "media-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -33,6 +46,22 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  outputFileTracingIncludes: {
+    "/api/admin/upload": [
+      "./public/**/*.jpg",
+      "./public/**/*.jpeg",
+      "./public/**/*.png",
+      "./public/**/*.webp",
+      "./public/**/*.pdf",
+      "./public/**/*.docx",
+      "./public/**/*.JPG",
+      "./public/**/*.JPEG",
+      "./public/**/*.PNG",
+      "./public/**/*.WEBP",
+      "./public/**/*.PDF",
+      "./public/**/*.DOCX",
+    ],
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

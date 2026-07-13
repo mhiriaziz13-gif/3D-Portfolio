@@ -33,7 +33,7 @@ export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [rememberDevice, setRememberDevice] = useState(true);
+  const [rememberDevice, setRememberDevice] = useState(false);
   const [factorId, setFactorId] = useState<string | null>(null);
   const [mfaStep, setMfaStep] = useState(initialMfaRequired);
   const [status, setStatus] = useState(initialError ? loginErrorMessage(initialError) : resetSuccess ? "Password updated. Please log in again." : "");

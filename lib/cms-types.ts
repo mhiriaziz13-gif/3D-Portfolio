@@ -170,6 +170,7 @@ export type UploadBucket =
 
 export type UploadRecord = {
   id: string;
+  source: "storage" | "local";
   bucket: UploadBucket;
   path: string;
   public_url: string | null;
