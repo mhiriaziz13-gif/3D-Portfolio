@@ -1,14 +1,13 @@
 export const revalidate = 60;
 
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import type { PropsWithChildren } from "react";
 
+import { DeferredAnalytics } from "@/components/main/deferred-analytics";
+import { DeferredStarBackground } from "@/components/main/deferred-star-background";
 import { Footer } from "@/components/main/footer";
+import { ImageFallbackController } from "@/components/main/image-fallback-controller";
 import { Navbar } from "@/components/main/navbar";
-import { StarsCanvas } from "@/components/main/star-background";
 import { siteConfig } from "@/config";
 import { getPortfolioContent } from "@/lib/cms";
 import { cn } from "@/lib/utils";
@@ -25,23 +24,12 @@ export default async function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="en">
       <body className={cn("bg-[#030014] overflow-y-scroll overflow-x-hidden font-sans")}>
-        <StarsCanvas />
+        <DeferredStarBackground />
+        <ImageFallbackController />
         <Navbar profile={content.profile} navLinks={content.navLinks} />
         {children}
         <Footer profile={content.profile} />
-        <Analytics />
-        <SpeedInsights />
-        {gaMeasurementId && (
-          <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`} strategy="afterInteractive" />
-            <Script id="google-analytics" strategy="afterInteractive">
-              {`window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${gaMeasurementId}');`}
-            </Script>
-          </>
-        )}
+        <DeferredAnalytics gaMeasurementId={gaMeasurementId} />
       </body>
     </html>
   );

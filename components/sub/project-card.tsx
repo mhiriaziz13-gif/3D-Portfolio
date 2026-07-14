@@ -1,10 +1,6 @@
-"use client";
-
-import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 
-import { isHttpsUrl } from "@/lib/utils";
+import { ProjectArtwork } from "@/components/sub/project-artwork";
 
 type ProjectCardProps = {
   src: string;
@@ -21,27 +17,10 @@ export const ProjectCard = ({
   tags,
   href,
 }: ProjectCardProps) => {
-  const fallbackSrc = "/projects/project-1.png";
-  const resolvedSrc = src || fallbackSrc;
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const imageSrc = failedSrc === resolvedSrc ? fallbackSrc : resolvedSrc;
-
   return (
     <article className="group relative overflow-hidden rounded-lg border border-[#2A0E61] bg-[#08021c]/70 shadow-lg shadow-[#2A0E61]/20 backdrop-blur-sm">
       <div className="relative aspect-[16/9] overflow-hidden border-b border-white/10 bg-[#030014]">
-        <Image
-          src={imageSrc}
-          alt={`Project visual for ${title}`}
-          fill
-          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-          className="object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-100"
-          unoptimized={isHttpsUrl(imageSrc)}
-          onError={() => {
-            if (imageSrc !== fallbackSrc) {
-              setFailedSrc(resolvedSrc);
-            }
-          }}
-        />
+        <ProjectArtwork src={src} title={title} />
       </div>
 
       <div className="relative flex h-full flex-col gap-4 p-5">

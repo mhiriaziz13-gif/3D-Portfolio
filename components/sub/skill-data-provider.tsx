@@ -1,7 +1,3 @@
-﻿"use client";
-
-import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 import type { IconType } from "react-icons";
 import {
   FaBullhorn,
@@ -50,7 +46,6 @@ import {
 
 type SkillDataProviderProps = {
   name: string;
-  index: number;
 };
 
 type SkillIcon = {
@@ -104,19 +99,12 @@ const fallbackSkill: SkillIcon = {
   color: "#c4b5fd",
 };
 
-export const SkillDataProvider = ({ name, index }: SkillDataProviderProps) => {
-  const { ref, inView } = useInView({
-    triggerOnce: true,
-  });
+export const SkillDataProvider = ({ name }: SkillDataProviderProps) => {
   const skill = skillIcons[name] ?? fallbackSkill;
   const Icon = skill.icon;
 
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 12 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
-      transition={{ delay: index * 0.04, duration: 0.35 }}
+    <div
       className="group flex min-h-[7rem] flex-col items-center justify-center gap-3 rounded-lg border border-[#7042f86b] bg-[#08021c]/70 p-4 text-center shadow-[inset_0_0_14px_rgba(191,151,255,0.12)] backdrop-blur-md transition hover:-translate-y-1 hover:border-cyan-300/50 hover:bg-[#0d0626]/80"
       aria-label={name}
       title={name}
@@ -131,7 +119,7 @@ export const SkillDataProvider = ({ name, index }: SkillDataProviderProps) => {
       <span className="text-xs font-medium leading-5 text-gray-200 sm:text-sm">
         {name}
       </span>
-    </motion.div>
+    </div>
   );
 };
 

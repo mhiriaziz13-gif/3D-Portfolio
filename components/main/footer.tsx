@@ -30,6 +30,7 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
           </Link>
           <Link
             href={profile.github}
+            aria-label={`${profile.githubLabel} — GitHub profile`}
             target="_blank"
             rel="noreferrer noopener"
             className="inline-flex items-center gap-2 transition hover:text-cyan-100"
@@ -39,6 +40,7 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
           </Link>
           <Link
             href={profile.linkedIn}
+            aria-label={`${profile.linkedInLabel} — LinkedIn profile`}
             target="_blank"
             rel="noreferrer noopener"
             className="inline-flex items-center gap-2 transition hover:text-cyan-100"
@@ -49,7 +51,7 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
         </div>
       </div>
 
-      <p className="mx-auto mt-8 max-w-7xl text-sm text-gray-500">
+      <p className="mx-auto mt-8 max-w-7xl text-sm text-gray-400">
         &copy; {profile.name} {new Date().getFullYear()}. All rights reserved.
       </p>
     </footer>

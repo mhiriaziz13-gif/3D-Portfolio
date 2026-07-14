@@ -83,7 +83,7 @@ export const ResumeSection = ({
   return (
     <section
       id={preview ? "cv-preview" : "resume"}
-      className="relative z-[20] mx-auto flex w-full max-w-7xl flex-col px-6 py-24"
+      className="render-deferred relative z-[20] mx-auto flex w-full max-w-7xl flex-col px-6 py-24"
     >
       <p className="Welcome-text text-sm uppercase">CV</p>
       <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -99,10 +99,11 @@ export const ResumeSection = ({
         {preview && (
           <Link
             href="/resume"
+            aria-label="View CV"
             className="button-primary inline-flex w-fit items-center justify-center gap-2 rounded-lg px-5 py-3 text-white transition hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-cyan-300"
           >
             <ArrowDownTrayIcon className="h-5 w-5" aria-hidden="true" />
-            View CV Page
+            View CV
           </Link>
         )}
       </div>

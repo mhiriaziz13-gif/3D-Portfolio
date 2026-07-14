@@ -7,7 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-const generic = "If this email is allowed, a recovery message has been sent.";
+const generic = "If an account exists, password-reset instructions have been sent.";
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +23,10 @@ export async function POST(request: Request) {
     const requestOrigin = new URL(request.url).origin;
     const redirectTo = `${requestOrigin}/auth/callback?next=${encodeURIComponent("/admin/reset-password")}`;
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo });
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+      redirectTo,
+      captchaToken: parsed.data.captchaToken,
+    });
 
     await writeAdminAudit({
       action: error ? "password_reset_request_failed" : "password_reset_requested",

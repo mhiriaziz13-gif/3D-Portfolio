@@ -141,6 +141,10 @@ async function main(rawUrl) {
       ? fail("The ordinary homepage markup references the logout endpoint.")
       : pass("The ordinary homepage markup does not reference the logout endpoint.");
 
+    /challenges\.cloudflare\.com\/turnstile/i.test(body)
+      ? fail("The ordinary homepage markup loads the Turnstile widget.")
+      : pass("The ordinary homepage markup does not load the Turnstile widget.");
+
     const setCookie = response.headers.get("set-cookie") ?? "";
     /(?:max-age=0|expires=Thu, 01 Jan 1970)/i.test(setCookie)
       ? fail("An ordinary homepage request clears a cookie.")

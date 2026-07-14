@@ -61,7 +61,26 @@ For password recovery, the email template should include:
 <a href="{{ .ConfirmationURL }}">Reset password</a>
 ```
 
-## 4. GitHub OAuth
+## 4. CAPTCHA Protection
+
+For production project `qflchsmvszbesfnomdeo`, open **Authentication > Bot and Abuse Protection** and configure:
+
+- Provider: **Cloudflare Turnstile**
+- Secret key: the private secret from the matching Cloudflare Turnstile widget
+- CAPTCHA protection: enabled
+
+The app renders the public widget only on `/admin/login` and `/admin/forgot-password`. It passes the resulting token to Supabase Auth for `signInWithPassword` and `resetPasswordForEmail`; it does not verify tokens with the provider secret itself.
+
+Set these public build variables locally and in Vercel:
+
+```text
+NEXT_PUBLIC_CAPTCHA_PROVIDER=turnstile
+NEXT_PUBLIC_CAPTCHA_SITE_KEY=your-public-turnstile-site-key
+```
+
+Never add the Turnstile secret to a `NEXT_PUBLIC_*` variable. Keep it in Cloudflare and the Supabase Auth CAPTCHA configuration. Add only the required production, trusted preview, or development hostnames to the Turnstile widget.
+
+## 5. GitHub OAuth
 
 Create a GitHub OAuth App.
 
@@ -80,7 +99,7 @@ The portfolio starts GitHub OAuth at `/api/auth/oauth/github` and returns throug
 
 Important: GitHub login does not create admin access. If GitHub creates a separate `auth.users` row, manually add that user id to `public.admins`.
 
-## 5. TOTP MFA
+## 6. TOTP MFA
 
 In Supabase Auth, enable TOTP MFA if it is not enabled by default.
 
@@ -92,7 +111,7 @@ Admin MFA enrollment is handled from:
 
 Google Authenticator can scan the QR code returned by Supabase MFA enrollment.
 
-## 6. Storage Buckets
+## 7. Storage Buckets
 
 The migration creates these buckets:
 
@@ -103,7 +122,7 @@ The migration creates these buckets:
 
 The admin upload route validates MIME type, extension, file size and magic bytes. SVG uploads are rejected.
 
-## 7. Manual Admin Creation
+## 8. Manual Admin Creation
 
 1. Create or sign in with Ahmed's admin email through Supabase Auth.
 2. Find the user in `auth.users`.
@@ -117,7 +136,7 @@ where email = 'mhiriaziz13@gmail.com'
 on conflict do nothing;
 ```
 
-## 8. Initial CMS Content
+## 9. Initial CMS Content
 
 The public site works with fallback content if CMS rows do not exist yet.
 
