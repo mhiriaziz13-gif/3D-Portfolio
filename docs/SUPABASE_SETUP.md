@@ -139,6 +139,15 @@ Recommended first rows:
 - social links
 
 Do not insert fake clients, fake metrics or old-owner content.
+
 ## 2026 CMS/Auth Refinement
 
-Apply `supabase/migrations/202607090001_fix_cms_auth_certifications.sql`, then optionally run `supabase/seed_ahmed_portfolio.sql`. Detailed provider, recovery and MFA steps are in `docs/AUTH_FIX_GITHUB_MFA_RESET.md`.
+For a new or disposable database created from the legacy bootstrap migration,
+review `supabase/migrations/202607090001_fix_cms_auth_certifications.sql`
+before applying it, then optionally run `supabase/seed_ahmed_portfolio.sql`.
+
+Do not replay that migration against the existing production project
+`qflchsmvszbesfnomdeo`. Its live migration ledger does not align with the legacy
+repository sequence, and the production schema was verified separately on
+2026-07-14. Detailed provider, recovery and MFA steps are in
+`docs/AUTH_FIX_GITHUB_MFA_RESET.md`.

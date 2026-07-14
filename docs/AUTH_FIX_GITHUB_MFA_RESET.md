@@ -53,7 +53,7 @@ The application now clears stale unverified TOTP factors before creating a new e
 
 In Supabase **Authentication > Sign In / Providers > GitHub**, enable GitHub and save the GitHub Client ID and Client Secret. The GitHub OAuth App callback must be:
 
-`https://uxtbwzynksuxhvyajznr.supabase.co/auth/v1/callback`
+`https://qflchsmvszbesfnomdeo.supabase.co/auth/v1/callback`
 
 Its homepage URL should be `https://ahmedaziz-portfolio.vercel.app`. The GitHub-created Supabase Auth user must also be present in `public.admins`.
 ## Required recovery email template
@@ -71,4 +71,4 @@ Add these redirect URLs in **Authentication > URL Configuration**:
 
 The `/auth/confirm` route verifies the recovery token server-side, creates the cookie session and redirects to `/admin/reset-password`. Request a new email after saving this template; existing messages keep their old link.
 
-The recovery callback accepts both Supabase's default PKCE code response and the custom 	oken_hash template. This keeps existing/default recovery templates compatible.
+The recovery callback accepts both Supabase's default PKCE code response and the custom `token_hash` template. This keeps existing/default recovery templates compatible.
