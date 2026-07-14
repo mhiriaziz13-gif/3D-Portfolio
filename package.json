@@ -7,7 +7,8 @@
     "build": "next build",
     "type-check": "tsc --noEmit",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "security:verify": "node scripts/security/verify-production-security.mjs"
   },
   "author": {
     "name": "Ahmed Aziz Mhiri",

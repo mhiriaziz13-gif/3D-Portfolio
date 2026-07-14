@@ -10,7 +10,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_SITE_URL=https://your-production-domain.vercel.app
 APP_URL=https://your-production-domain.vercel.app
-ALLOWED_ORIGINS=https://your-production-domain.vercel.app,http://localhost:3000
+ALLOWED_ORIGINS=https://your-production-domain.vercel.app
 REQUIRE_ADMIN_MFA=false
 ADMIN_MFA_REMEMBER_DAYS=10
 ```
@@ -40,7 +40,7 @@ APP_URL=https://your-production-domain.vercel.app
 NEXT_PUBLIC_SITE_URL=https://your-production-domain.vercel.app
 ```
 
-`ALLOWED_ORIGINS` must include the production URL and localhost for development.
+`ALLOWED_ORIGINS` must contain only explicitly trusted deployed HTTPS origins in production. Localhost and `127.0.0.1` are added automatically outside production and are filtered from the production allowlist.
 
 ## Preview Deployments
 
@@ -67,9 +67,10 @@ Remove any old portfolio domain from:
 
 ## Security Notes
 
-The app adds CSP, HSTS, frame protection, referrer policy, permissions policy and content-type protection through `next.config.js`.
+The app adds CSP, HSTS, frame protection, referrer policy, permissions policy, content-type protection and a legacy cross-domain policy opt-out through `next.config.js`.
 
 The CSP allows inline scripts/styles because Next.js and the current animation stack require framework-managed inline runtime/style behavior. Keep this documented if tightening CSP later.
+
 ## 2026 CMS/Auth Refinement
 
-Apply `supabase/migrations/202607090001_fix_cms_auth_certifications.sql`, then optionally run `supabase/seed_ahmed_portfolio.sql`. Detailed provider, recovery and MFA steps are in `docs/AUTH_FIX_GITHUB_MFA_RESET.md`.
+The current remote Supabase project already contains the reviewed security migrations. Do not run an apply-all migration command: the local and remote migration ledgers contain historical differences. Reconcile migration history deliberately before any future schema change. Detailed provider, recovery and MFA steps are in `docs/AUTH_FIX_GITHUB_MFA_RESET.md`.
