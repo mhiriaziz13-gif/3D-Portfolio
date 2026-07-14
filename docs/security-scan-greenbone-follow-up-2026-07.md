@@ -6,11 +6,12 @@
 - **Greenbone report date:** 2026-07-13
 - **Follow-up review date:** 2026-07-14
 - **Remediation reference:** commit `e66954e` (`security: harden app and Supabase configuration`)
+- **Application-changing publication commit:** `e2c242f` (`security: add post-remediation verification`)
 - **Scanner summary:** 0 Critical, 0 High, 0 Medium, 2 Low, 54 informational/log findings
 
-Production behavior matches the previous remediation: the live site has the hardened CSP, no `X-Powered-By`, the expected HSTS value, POST-only logout behavior and the published `security.txt`. These behavioral checks do not independently prove a Vercel deployment's exact Git SHA. The working-tree changes from this follow-up are intentionally uncommitted and undeployed. They add one optional centralized header, restrict the production origin allowlist to non-loopback/non-localhost HTTPS origins, add a read-only verifier and correct stale setup documentation.
+Production behavior matches the remediation: the live site has the hardened CSP, no `X-Powered-By`, the expected HSTS value, POST-only logout behavior, the published `security.txt` and `X-Permitted-Cross-Domain-Policies: none`. Vercel deployment metadata ties the application-changing follow-up to commit `e2c242f`. The follow-up also restricts the production origin allowlist to non-loopback/non-localhost HTTPS origins, adds a read-only verifier and corrects stale setup documentation.
 
-No authentication architecture, authentication route, Supabase migration or database object was changed. No SQL, migration, login attempt, contact submission, commit, push or deployment was performed.
+No authentication architecture, authentication route, Supabase migration or database object was changed. During the review phase, no SQL, migration, login attempt, contact submission, commit, push or deployment was performed. A later explicit owner request authorized committing and pushing the reviewed files to `main`; Vercel then completed its configured Git-triggered production deployment. No Supabase SQL or manual platform-setting mutation was needed.
 
 ## Outcome
 
@@ -55,7 +56,7 @@ scripts/security/verify-production-security.mjs
 | `Cross-Origin-Embedder-Policy` missing | Informational | Not required by this application | Application | Not added; COEP could block noncompliant cross-origin subresources, while the COOP configuration needed for full isolation can affect OAuth popup relationships | No `SharedArrayBuffer` or cross-origin-isolation requirement found | Isolation-gated capabilities remain unavailable or restricted, which is acceptable because the app does not use them |
 | `Document-Policy` missing | Informational | Optional/experimental, not a baseline security header | Application/browser standard | No action without a concrete feature requirement | Repository has no dependency on Document Policy | None identified |
 | `X-XSS-Protection` missing | Informational | Obsolete legacy filter | Browser standard | Intentionally not added | CSP, React escaping and server validation are the relevant controls | Legacy browsers do not receive this obsolete filter |
-| `X-Permitted-Cross-Domain-Policies` missing | Informational | Optional defense in depth | Application | Added centrally as `none`; pending an owner-reviewed deployment | Repository contains no legacy policy file or technology; current production warning is expected until deployment | Negligible before deployment |
+| `X-Permitted-Cross-Domain-Policies` missing | Informational | Optional defense in depth | Application | Added centrally as `none` and deployed | Repository contains no legacy policy file or technology; the post-deploy verifier confirms the header | None identified |
 | `Cross-Origin-Resource-Policy: same-origin` | Informational/present | Current deliberate policy | Application | Retained | Present live; a sampled same-origin JavaScript chunk and public image returned 200 | Cross-origin embedding remains intentionally restricted |
 | AES-GCM suites labelled “Medium” | Informational | Currently accepted modern suites; no weak suite evidence | Vercel edge TLS | No application change | TLS 1.2 and 1.3 handshakes succeeded; Vercel lists the same six forward-secret suites | Vercel controls future cipher policy |
 | Ports 80 and 443 | Informational | Expected web-service exposure | Vercel | Accepted | Port 80 returns an immediate 308 HTTPS redirect; port 443 serves HTTPS | Normal public web exposure |
@@ -91,7 +92,7 @@ No `sysctl`, Docker, `netsh`, firewall, shell-build or serverless pseudo-fix was
 | Area | Result |
 | --- | --- |
 | Repository state before follow-up edits | `main` was clean and synchronized with `origin/main` at `e66954e`; the requested status, diff and ten-commit history were inspected |
-| Deployment freshness | Live `security.txt`, absence of `X-Powered-By`, hardened CSP and safe GET logout behavior confirm that production behavior matches the previous remediation; no exact deployment SHA was inferred |
+| Deployment freshness | Vercel reports a READY production Git deployment for application-changing commit `e2c242f`; live headers and routes match it |
 | HTTPS homepage | 200 through the read-only verifier; HSTS, CSP, `nosniff`, Referrer-Policy, Permissions-Policy, COOP and CORP present |
 | Production CSP | `unsafe-eval` absent; `object-src 'none'`, `frame-ancestors 'none'` and `script-src-attr 'none'` present |
 | Development CSP | `unsafe-eval` remains development-only; `upgrade-insecure-requests` remains production-only |
@@ -105,21 +106,17 @@ No `sysctl`, Docker, `netsh`, firewall, shell-build or serverless pseudo-fix was
 | Production source maps | Discovered same-origin JavaScript chunks were probed for adjacent `.map` files; none returned success |
 | Sampled assets | One same-origin production JavaScript chunk and one same-origin public image returned 200 with the expected content types |
 | Browser automation | Headless Chrome reached a Vercel browser-verification challenge rather than application content; no attempt was made to bypass it, so UI and application-console verification remain manual |
-| Automated verifier | Successful production run before the final redirect/5xx edge-case tightening: `74 passed, 3 warnings, 0 failures`; final script against the local production build: `69 passed, 3 warnings, 0 failures` |
+| Automated verifier | Post-deploy production: `75 passed, 2 warnings, 0 failures`; final script against the local production build: `69 passed, 3 warnings, 0 failures` |
 | TypeScript | `npm run type-check` passed |
 | ESLint | `npm run lint` passed |
 | Production build | `npm run build` passed after the sandbox-restricted worker spawn was rerun with normal worker permissions |
 | Unit tests | Not run because `package.json` defines no `test` script |
 
-The verifier warnings are non-regressions:
-
-- the newly added `X-Permitted-Cross-Domain-Policies: none` is not present in the already-deployed baseline because this review did not deploy;
-- `/robots.txt` returns 404;
-- `/sitemap.xml` returns 404.
+The two post-deploy verifier warnings are non-regressions: `/robots.txt` and `/sitemap.xml` return 404.
 
 The latter two are discoverability metadata, not sensitive resources or security controls.
 
-After the successful production run, a burst of additional curl and headless-browser probes began receiving Vercel's browser-verification response. The protection was not bypassed. The final stricter script version was therefore rechecked against the local production build; it should be rerun against an owner-controlled preview and then production after the normal deployment workflow.
+During review, a burst of curl and headless-browser probes received Vercel's browser-verification response. The protection was not bypassed. After the owner-authorized Git deployment, the final stricter script completed successfully against production.
 
 ### Sensitive paths tested
 
@@ -137,7 +134,7 @@ The remote migration list was inspected read-only and includes:
 - `202607040001_admin_mfa_recovery`
 - `20260714093312_security_advisor_hardening`
 
-The current Security Advisor reports one informational item (`site_settings` has RLS enabled without a client policy) and one dashboard warning (leaked-password protection is disabled). The former preserves default-deny access and did not justify a schema change in this review. Leaked-password protection is a project-owner Auth setting to review separately; it is not fixed with application SQL. The local/remote migration ledgers have historical differences, so an apply-all or automatic `db push` remains inappropriate.
+The current Security Advisor reports one informational item (`site_settings` has RLS enabled without a client policy) and one dashboard warning (leaked-password protection is disabled). The former preserves default-deny access and did not justify a schema change in this review. The project is on the Free plan, while leaked-password protection is available on Pro and above; it is not fixed with application SQL. The local/remote migration ledgers have historical differences, so an apply-all or automatic `db push` remains inappropriate.
 
 No SQL or migration was executed or modified during this follow-up.
 
@@ -145,7 +142,7 @@ No SQL or migration was executed or modified during this follow-up.
 
 Read-only production checks covered HTTP responses, headers, a sampled public image and JavaScript asset, route protection and TLS. Headless Chrome was intercepted by Vercel's browser-verification challenge, so this review does not claim visual animation, application console or browser-network verification. The challenge itself is platform protection, not an application failure, and it was not bypassed. The contact form was not submitted. Email/password login, GitHub OAuth, callback completion, MFA, remembered devices, password reset, live administrator sessions, CMS save/edit/delete, uploads, Media Library, messages, settings and archive restoration require owner credentials and potentially mutate production data, so they were not automated in this review.
 
-Before promoting these uncommitted changes, deploy an owner-controlled preview and run:
+For future application changes, deploy an owner-controlled preview and run:
 
 ```powershell
 $env:SECURITY_TARGET_URL = "https://your-preview.vercel.app"
@@ -158,8 +155,9 @@ Then perform the credentialed Auth and CMS regression checklist with a dedicated
 
 Codex did not change any of these settings:
 
-- [ ] Confirm the intended production deployment and production branch.
-- [ ] After review, deploy the follow-up through the normal controlled workflow and rerun `security:verify` against preview and production.
+- [x] Confirm the intended production deployment and production branch (`main`).
+- [x] Deploy the follow-up through the configured Git workflow and rerun `security:verify` against production.
+- [ ] Use an owner-controlled preview and rerun the verifier before future production changes.
 - [ ] Enable or review Deployment Protection for preview environments when available and appropriate.
 - [ ] Scope production secrets to Production; do not expose them to Preview or Development without a concrete need.
 - [ ] Remove localhost values from the deployed `ALLOWED_ORIGINS`; the code now filters them in production as defense in depth.
