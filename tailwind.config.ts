@@ -8,6 +8,15 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      keyframes: {
+        avatarFloat: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-8px)" },
+        },
+      },
+      animation: {
+        "avatar-float": "avatarFloat 6s ease-in-out infinite",
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':

@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const isDevelopment = process.env.NODE_ENV === "development";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const captchaProvider = (
+  process.env.NEXT_PUBLIC_CAPTCHA_PROVIDER || ""
+).trim().toLowerCase();
+const turnstileOrigin =
+  captchaProvider === "turnstile"
+    ? "https://challenges.cloudflare.com"
+    : "";
 const supabaseOrigin = (() => {
   try {
     return supabaseUrl ? new URL(supabaseUrl).origin : "";
@@ -21,6 +28,7 @@ const connectSources = [
   "https://www.google-analytics.com",
   "https://region1.google-analytics.com",
   "https://vitals.vercel-insights.com",
+  turnstileOrigin,
 ].filter(Boolean).join(" ");
 
 const scriptSources = [
@@ -29,7 +37,10 @@ const scriptSources = [
   ...(isDevelopment ? ["'unsafe-eval'"] : []),
   "https://www.googletagmanager.com",
   "https://va.vercel-scripts.com",
-].join(" ");
+  turnstileOrigin,
+].filter(Boolean).join(" ");
+
+const frameSources = turnstileOrigin || "'none'";
 
 const imageSources = [
   "'self'",
@@ -59,7 +70,7 @@ const csp = [
   "object-src 'none'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
-  "frame-src 'none'",
+  `frame-src ${frameSources}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -80,6 +91,11 @@ const securityHeaders = [
 
 const nextConfig = {
   poweredByHeader: false,
+  images: {
+    // The portfolio's fill images top out near 405px. Adding a 384px device
+    // candidate prevents small cards/avatars from jumping straight to 640px.
+    deviceSizes: [384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+  },
   outputFileTracingIncludes: {
     "/api/admin/upload": [
       "./public/**/*.jpg",

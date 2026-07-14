@@ -3,23 +3,54 @@
 import {
   Points,
   PointMaterial,
-  type PointsInstancesProps,
 } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useReducedMotion } from "framer-motion";
 import * as random from "maath/random";
-import { useState, useRef, Suspense } from "react";
+import { Suspense, useRef, useState } from "react";
 import type { Points as PointsType } from "three";
 
-export const StarBackground = (props: PointsInstancesProps) => {
+const createStarPositions = (count: number) => {
+  const positions = new Float32Array(
+    random.inSphere(new Float32Array(count * 3), { radius: 1.2 }),
+  );
+  const invalidIndices: number[] = [];
+
+  for (let index = 0; index < positions.length; index += 1) {
+    if (!Number.isFinite(positions[index])) {
+      invalidIndices.push(index);
+      positions[index] = 0;
+    }
+  }
+
+  if (
+    process.env.NODE_ENV !== "production" &&
+    (positions.length % 3 !== 0 || invalidIndices.length > 0)
+  ) {
+    console.warn("[StarBackground] Invalid position geometry was sanitized", {
+      geometry: "portfolio-star-field",
+      itemSize: 3,
+      positionLength: positions.length,
+      invalidIndices: invalidIndices.slice(0, 10),
+    });
+  }
+
+  return positions;
+};
+
+const StarBackground = ({
+  active,
+  count,
+}: {
+  active: boolean;
+  count: number;
+}) => {
   const ref = useRef<PointsType | null>(null);
   const shouldReduceMotion = useReducedMotion();
-  const [sphere] = useState(() =>
-    random.inSphere(new Float32Array(5000), { radius: 1.2 }),
-  );
+  const [sphere] = useState(() => createStarPositions(count));
 
   useFrame((_state, delta) => {
-    if (shouldReduceMotion) {
+    if (!active || shouldReduceMotion) {
       return;
     }
 
@@ -34,9 +65,8 @@ export const StarBackground = (props: PointsInstancesProps) => {
       <Points
         ref={ref}
         stride={3}
-        positions={new Float32Array(sphere)}
+        positions={sphere}
         frustumCulled
-        {...props}
       >
         <PointMaterial
           transparent
@@ -50,11 +80,28 @@ export const StarBackground = (props: PointsInstancesProps) => {
   );
 };
 
-export const StarsCanvas = () => (
-  <div className="fixed inset-0 -z-10 h-auto w-full" aria-hidden="true">
-    <Canvas camera={{ position: [0, 0, 1] }}>
+export const StarsCanvas = ({
+  active,
+  lowPower,
+  onReady,
+}: {
+  active: boolean;
+  lowPower: boolean;
+  onReady?: () => void;
+}) => (
+  <div className="absolute inset-0 h-full w-full" aria-hidden="true">
+    <Canvas
+      camera={{ position: [0, 0, 1] }}
+      dpr={lowPower ? 1 : [1, 1.5]}
+      frameloop={active ? "always" : "never"}
+      gl={{
+        antialias: !lowPower,
+        powerPreference: "low-power",
+      }}
+      onCreated={onReady}
+    >
       <Suspense fallback={null}>
-        <StarBackground />
+        <StarBackground active={active} count={lowPower ? 700 : 1400} />
       </Suspense>
     </Canvas>
   </div>

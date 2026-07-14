@@ -6,7 +6,7 @@ export const Projects = ({ projects = fallbackPortfolioContent.projects }: { pro
   return (
     <section
       id="projects"
-      className="mx-auto flex w-full max-w-7xl flex-col items-center justify-center px-6 py-24"
+      className="render-deferred mx-auto flex w-full max-w-7xl flex-col items-center justify-center px-6 py-24"
     >
       <p className="Welcome-text mb-4 text-sm">Selected work</p>
       <h2 className="pb-14 text-center text-[40px] font-semibold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-cyan-500">

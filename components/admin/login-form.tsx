@@ -1,9 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { FormEvent, useEffect, useState } from "react";
+import type {
+  CaptchaController,
+  CaptchaSnapshot,
+} from "@/components/security/captcha-widget";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { SiGithub } from "react-icons/si";
+
+const CaptchaWidget = dynamic(
+  () =>
+    import("@/components/security/captcha-widget").then(
+      (module) => module.CaptchaWidget,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="min-h-[160px] text-xs text-cyan-100 min-[400px]:min-h-[85px]" aria-live="polite">
+        Loading verification...
+      </p>
+    ),
+  },
+);
 
 type LoginFormProps = {
   nextPath: string;
@@ -15,6 +35,13 @@ type LoginFormProps = {
 type MfaFactor = {
   id: string;
   friendly_name?: string;
+};
+
+const initialCaptcha: CaptchaSnapshot = {
+  token: null,
+  ready: false,
+  error: null,
+  expired: false,
 };
 
 const loginErrorMessage = (error?: string) => ({
@@ -38,6 +65,19 @@ export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, 
   const [mfaStep, setMfaStep] = useState(initialMfaRequired);
   const [status, setStatus] = useState(initialError ? loginErrorMessage(initialError) : resetSuccess ? "Password updated. Please log in again." : "");
   const [pending, setPending] = useState(false);
+  const [captcha, setCaptcha] = useState<CaptchaSnapshot>(initialCaptcha);
+  const captchaController = useRef<CaptchaController | null>(null);
+
+  const handleCaptchaChange = useCallback((next: CaptchaSnapshot) => {
+    setCaptcha(next);
+  }, []);
+
+  const handleCaptchaControllerChange = useCallback(
+    (controller: CaptchaController | null) => {
+      captchaController.current = controller;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!initialMfaRequired) return;
@@ -55,35 +95,48 @@ export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, 
 
   const submitLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (pending) return;
+    if (!captcha.token) {
+      setStatus(captcha.error ?? "Complete the verification first.");
+      return;
+    }
+
+    const captchaToken = captcha.token;
     setPending(true);
     setStatus("");
 
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, next: nextPath }),
-    });
-    const data = await response.json().catch(() => ({}));
-    setPending(false);
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, next: nextPath, captchaToken }),
+      });
+      const data = await response.json().catch(() => ({}));
 
-    if (!response.ok || !data.ok) {
-      setStatus(data.error ?? "Invalid email or password.");
-      return;
-    }
-
-    if (data.mfaRequired) {
-      if (data.redirectTo) {
-        window.location.href = data.redirectTo;
+      if (!response.ok || !data.ok) {
+        setStatus(data.error ?? "Invalid email or password.");
         return;
       }
-      setFactorId(data.factorId);
-      setMfaStep(true);
-      setStatus("Enter your Google Authenticator code.");
-      return;
-    }
 
-    window.location.href = data.redirectTo ?? "/admin";
+      if (data.mfaRequired) {
+        if (data.redirectTo) {
+          window.location.href = data.redirectTo;
+          return;
+        }
+        setFactorId(data.factorId);
+        setMfaStep(true);
+        setStatus("Enter your Google Authenticator code.");
+        return;
+      }
+
+      window.location.href = data.redirectTo ?? "/admin";
+    } catch {
+      setStatus("Login could not be completed. Please try again.");
+    } finally {
+      captchaController.current?.reset();
+      setPending(false);
+    }
   };
 
   const submitGitHub = async () => {
@@ -147,7 +200,12 @@ export const LoginForm = ({ nextPath, initialMfaRequired = false, initialError, 
             Password
             <input className="rounded-lg border border-white/10 bg-[#151030] px-4 py-3 text-white outline-none focus:border-cyan-300/60" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
           </label>
-          <button type="submit" disabled={pending} className="button-primary rounded-lg px-5 py-3 font-bold text-white disabled:opacity-60">{pending ? "Checking..." : "Log in"}</button>
+          <CaptchaWidget
+            action="admin-login"
+            onChange={handleCaptchaChange}
+            onControllerChange={handleCaptchaControllerChange}
+          />
+          <button type="submit" disabled={pending || !captcha.token} className="button-primary rounded-lg px-5 py-3 font-bold text-white disabled:opacity-60">{pending ? "Checking..." : "Log in"}</button>
         </form>
       ) : (
         <form onSubmit={submitMfa} className="mt-8 flex flex-col gap-5">

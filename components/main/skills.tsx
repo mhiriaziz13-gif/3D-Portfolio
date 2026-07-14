@@ -1,3 +1,4 @@
+import { DeferredBackgroundVideo } from "@/components/main/deferred-background-video";
 import { SkillDataProvider } from "@/components/sub/skill-data-provider";
 import { SkillText } from "@/components/sub/skill-text";
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
@@ -7,7 +8,7 @@ export const Skills = ({ skillCategories = fallbackPortfolioContent.skillCategor
   return (
     <section
       id="skills"
-      className="relative flex h-full flex-col items-center justify-center gap-6 overflow-hidden px-6 py-24"
+      className="render-deferred relative flex h-full flex-col items-center justify-center gap-6 overflow-hidden px-6 py-24"
     >
       <SkillText />
 
@@ -21,11 +22,10 @@ export const Skills = ({ skillCategories = fallbackPortfolioContent.skillCategor
               {category.title}
             </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {category.skills.map((skill, i) => (
+              {category.skills.map((skill) => (
                 <SkillDataProvider
                   key={`${category.title}-${skill}`}
                   name={skill}
-                  index={i}
                 />
               ))}
             </div>
@@ -34,16 +34,10 @@ export const Skills = ({ skillCategories = fallbackPortfolioContent.skillCategor
       </div>
 
       <div className="absolute inset-0 -z-10 opacity-30" aria-hidden="true">
-        <video
+        <DeferredBackgroundVideo
+          src="/videos/skills-bg.webm"
           className="h-full w-full object-cover"
-          preload="metadata"
-          playsInline
-          loop
-          muted
-          autoPlay
-        >
-          <source src="/videos/skills-bg.webm" type="video/webm" />
-        </video>
+        />
       </div>
     </section>
   );

@@ -1,60 +1,17 @@
-"use client";
-
 import {
   ArrowRightIcon,
   ArrowTopRightOnSquareIcon,
   CalendarDaysIcon,
   IdentificationIcon,
 } from "@heroicons/react/24/solid";
-import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { FaCertificate } from "react-icons/fa6";
 
+import { CertificationArtwork } from "@/components/sub/certification-artwork";
 import type { CertificationContent } from "@/lib/cms-types";
-import { isHttpsUrl } from "@/lib/utils";
 
 type CertificationsSectionProps = {
   certifications: CertificationContent[];
   preview?: boolean;
-};
-
-const isSupportedImageSource = (source: string) =>
-  (source.startsWith("/") && !source.startsWith("//")) || isHttpsUrl(source);
-
-const CertificationArtwork = ({
-  certification,
-}: {
-  certification: CertificationContent;
-}) => {
-  const imageUrl = certification.imageUrl?.trim() ?? "";
-  const [failedImage, setFailedImage] = useState<string | null>(null);
-  const showImage =
-    isSupportedImageSource(imageUrl) && failedImage !== imageUrl;
-
-  return (
-    <div className="relative flex h-44 items-center justify-center overflow-hidden border-b border-white/10 bg-gradient-to-br from-purple-500/20 via-[#100b24] to-cyan-400/10">
-      {showImage ? (
-        <Image
-          src={imageUrl}
-          alt={
-            certification.issuer.trim()
-              ? `${certification.name} certification issued by ${certification.issuer}`
-              : `${certification.name} certification`
-          }
-          fill
-          sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw"
-          className="object-contain p-3 transition duration-500 group-hover:scale-[1.03]"
-          unoptimized={isHttpsUrl(imageUrl)}
-          onError={() => setFailedImage(imageUrl)}
-        />
-      ) : (
-        <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-100 shadow-[0_0_32px_rgba(103,232,249,0.18)]">
-          <FaCertificate className="h-9 w-9" aria-hidden="true" />
-        </div>
-      )}
-    </div>
-  );
 };
 
 const CertificationCard = ({
@@ -163,7 +120,7 @@ export const CertificationsSection = ({
   return (
     <section
       id="certifications"
-      className={`relative z-[20] mx-auto flex w-full max-w-7xl flex-col px-6 ${preview ? "py-16" : "py-24"}`}
+      className={`render-deferred relative z-[20] mx-auto flex w-full max-w-7xl flex-col px-6 ${preview ? "py-16" : "py-24"}`}
     >
       <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>

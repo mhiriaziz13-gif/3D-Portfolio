@@ -79,7 +79,7 @@ export const EducationSection = ({
   return (
     <section
       id="education"
-      className={`relative z-[20] mx-auto flex w-full max-w-7xl flex-col px-6 ${preview ? "py-16" : "py-24"}`}
+      className={`render-deferred relative z-[20] mx-auto flex w-full max-w-7xl flex-col px-6 ${preview ? "py-16" : "py-24"}`}
     >
       <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>

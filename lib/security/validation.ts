@@ -10,14 +10,18 @@ export const passwordSchema = z
   .regex(/[A-Z]/, "Password must include an uppercase letter.")
   .regex(/[0-9]/, "Password must include a number.");
 
+export const captchaTokenSchema = z.string().trim().min(1).max(4096);
+
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1).max(256),
   next: z.string().optional(),
+  captchaToken: captchaTokenSchema,
 });
 
 export const forgotPasswordSchema = z.object({
   email: emailSchema,
+  captchaToken: captchaTokenSchema,
 });
 
 export const resetPasswordSchema = z.object({
