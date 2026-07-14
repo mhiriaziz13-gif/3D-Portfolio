@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+const isDevelopment = process.env.NODE_ENV === "development";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseOrigin = (() => {
   try {
@@ -16,22 +17,53 @@ const connectSources = [
   "'self'",
   supabaseOrigin,
   supabaseRealtimeOrigin,
+  "https://www.googletagmanager.com",
   "https://www.google-analytics.com",
   "https://region1.google-analytics.com",
   "https://vitals.vercel-insights.com",
 ].filter(Boolean).join(" ");
 
+const scriptSources = [
+  "'self'",
+  "'unsafe-inline'",
+  ...(isDevelopment ? ["'unsafe-eval'"] : []),
+  "https://www.googletagmanager.com",
+  "https://va.vercel-scripts.com",
+].join(" ");
+
+const imageSources = [
+  "'self'",
+  "data:",
+  "blob:",
+  supabaseOrigin,
+  "https://www.googletagmanager.com",
+  "https://www.google-analytics.com",
+  "https://region1.google-analytics.com",
+]
+  .filter(Boolean)
+  .join(" ");
+
+const mediaSources = ["'self'", "blob:", supabaseOrigin]
+  .filter(Boolean)
+  .join(" ");
+
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://va.vercel-scripts.com",
+  `script-src ${scriptSources}`,
+  "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
+  `img-src ${imageSources}`,
   "font-src 'self' data:",
   `connect-src ${connectSources}`,
-  "media-src 'self' blob:",
+  `media-src ${mediaSources}`,
+  "object-src 'none'",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "frame-src 'none'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  ...(!isDevelopment ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
 
 const securityHeaders = [
@@ -46,6 +78,7 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  poweredByHeader: false,
   outputFileTracingIncludes: {
     "/api/admin/upload": [
       "./public/**/*.jpg",

@@ -112,7 +112,12 @@ export const Contact = ({ profile = fallbackPortfolioContent.profile }: { profil
           LinkedIn, GitHub or the form below.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-10 flex flex-col gap-6">
+        <form
+          action="/api/contact"
+          method="post"
+          onSubmit={handleSubmit}
+          className="mt-10 flex flex-col gap-6"
+        >
           <label className="flex flex-col">
             <span className="mb-3 font-medium text-white">Name</span>
             <input

@@ -1,6 +1,16 @@
 # Supabase Setup
 
-## 1. Run SQL Migrations
+> **Existing production projects:** do not follow the bootstrap migration steps
+> below and do not apply all pending repository migrations. As of 2026-07-14, the
+> live migration ledger and repository history are not aligned, and the pending
+> `202607100001_clean_reset_and_seed.sql` file is destructive. Reconcile each
+> version against live schema first, then apply only individually reviewed files.
+> The legacy bootstrap SQL also recreates the function/Storage findings addressed
+> by `20260714093312_security_advisor_hardening.sql`, which was applied and verified
+> on project `qflchsmvszbesfnomdeo` on 2026-07-14. Do not apply it again. See
+> `security-scan-remediation-2026-07.md` for the release gate and verification.
+
+## 1. Bootstrap a new/disposable database
 
 Run the migration in Supabase SQL editor or with Supabase CLI:
 

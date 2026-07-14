@@ -1,5 +1,5 @@
 export const noStoreHeaders = {
-  "Cache-Control": "no-store, max-age=0",
+  "Cache-Control": "private, no-store, max-age=0",
   Pragma: "no-cache",
 } as const;
 
