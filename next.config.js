@@ -9,6 +9,7 @@ const hcaptchaSources =
   captchaProvider === "hcaptcha"
     ? ["https://hcaptcha.com", "https://*.hcaptcha.com"]
     : [];
+const claritySources = ["https://*.clarity.ms", "https://c.bing.com"];
 const supabaseOrigin = (() => {
   try {
     return supabaseUrl ? new URL(supabaseUrl).origin : "";
@@ -29,6 +30,7 @@ const connectSources = [
   "https://www.google-analytics.com",
   "https://region1.google-analytics.com",
   "https://vitals.vercel-insights.com",
+  ...claritySources,
   ...hcaptchaSources,
 ].filter(Boolean).join(" ");
 
@@ -38,6 +40,7 @@ const scriptSources = [
   ...(isDevelopment ? ["'unsafe-eval'"] : []),
   "https://www.googletagmanager.com",
   "https://va.vercel-scripts.com",
+  ...claritySources,
   ...hcaptchaSources,
 ].filter(Boolean).join(" ");
 
@@ -59,6 +62,7 @@ const imageSources = [
   "https://www.googletagmanager.com",
   "https://www.google-analytics.com",
   "https://region1.google-analytics.com",
+  ...claritySources,
 ]
   .filter(Boolean)
   .join(" ");
