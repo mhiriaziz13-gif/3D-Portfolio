@@ -8,7 +8,7 @@ Add these in Vercel Project Settings, for Production and any trusted Preview env
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-NEXT_PUBLIC_CAPTCHA_PROVIDER=turnstile
+NEXT_PUBLIC_CAPTCHA_PROVIDER=hcaptcha
 NEXT_PUBLIC_CAPTCHA_SITE_KEY=
 NEXT_PUBLIC_SITE_URL=https://your-production-domain.vercel.app
 APP_URL=https://your-production-domain.vercel.app
@@ -30,7 +30,7 @@ GITHUB_TOKEN=
 - `NEXT_PUBLIC_CAPTCHA_PROVIDER` and `NEXT_PUBLIC_CAPTCHA_SITE_KEY` are browser-visible widget configuration.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only.
 - Never expose the service role key as `NEXT_PUBLIC_*`.
-- Keep the Turnstile secret in Cloudflare and Supabase Auth. This application does not need it in Vercel.
+- Keep the hCaptcha secret in hCaptcha and Supabase Auth. This application does not need it in Vercel.
 - Do not paste secrets into source files.
 
 ## Production Domain
@@ -48,13 +48,13 @@ NEXT_PUBLIC_SITE_URL=https://your-production-domain.vercel.app
 
 Preview deployments have different hostnames. Add preview origins only if you intend to test admin/auth there. Otherwise, keep admin auth production-only.
 
-## Turnstile CAPTCHA
+## hCaptcha
 
-This application uses Turnstile only on the email/password login and password-recovery request forms. Set the two public variables above for every Vercel environment where those forms must work, then redeploy because `NEXT_PUBLIC_*` values and the CSP are fixed at build time.
+This application uses hCaptcha only on the email/password login and password-recovery request forms. Set the two public variables above for every Vercel environment where those forms must work, then redeploy because `NEXT_PUBLIC_*` values and the CSP are fixed at build time.
 
-In Cloudflare Turnstile, allow the production hostname. Add trusted Vercel preview hostnames only when preview authentication is required. For local testing, use Cloudflare's documented testing site key or a widget that permits the local hostname; its matching secret must be configured in a non-production Supabase project.
+In hCaptcha, allow the production hostname. Add trusted Vercel preview hostnames only when preview authentication is required. For local testing, use hCaptcha's documented test site key; its matching secret must be configured in a non-production Supabase project.
 
-In Supabase project `qflchsmvszbesfnomdeo`, open **Authentication > Bot and Abuse Protection**, select **Turnstile**, enter the Turnstile secret, enable CAPTCHA protection, and save. Do not copy that secret into this repository or a `NEXT_PUBLIC_*` Vercel variable.
+In Supabase project `qflchsmvszbesfnomdeo`, open **Authentication > Bot and Abuse Protection**, select **hCaptcha**, enter the hCaptcha secret, enable CAPTCHA protection, and save. Do not copy that secret into this repository or a `NEXT_PUBLIC_*` Vercel variable.
 
 GitHub OAuth, MFA verification, password updates after recovery, and logout do not use the CAPTCHA token.
 
@@ -67,7 +67,7 @@ After changing environment variables:
 1. Save variables.
 2. Redeploy from Vercel.
 3. Confirm `/`, `/admin/login`, `/admin/forgot-password`, `/auth/callback` and `/api/contact` load.
-4. Confirm Turnstile loads on the two password-based entry forms and is absent from the homepage.
+4. Confirm hCaptcha loads on the two password-based entry forms and is absent from the homepage.
 
 ## Old Domain Removal
 

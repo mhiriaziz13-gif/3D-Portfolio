@@ -28,18 +28,18 @@ The app requests recovery with `/auth/callback?next=/admin/reset-password`, vali
 
 ## CAPTCHA for password entry points
 
-The application implementation selects Cloudflare Turnstile based on the repository's existing provider intent. Before deployment, the owner must confirm that production project `qflchsmvszbesfnomdeo` selects Turnstile and stores the matching provider secret in Supabase Auth. Vercel must provide:
+The application uses hCaptcha. Before deployment, the owner must confirm that production project `qflchsmvszbesfnomdeo` selects hCaptcha and stores the matching provider secret in Supabase Auth. Vercel must provide:
 
 ```text
-NEXT_PUBLIC_CAPTCHA_PROVIDER=turnstile
-NEXT_PUBLIC_CAPTCHA_SITE_KEY=your-public-turnstile-site-key
+NEXT_PUBLIC_CAPTCHA_PROVIDER=hcaptcha
+NEXT_PUBLIC_CAPTCHA_SITE_KEY=your-public-hcaptcha-site-key
 ```
 
-The private Turnstile secret belongs only in Cloudflare and **Supabase Authentication > Bot and Abuse Protection**. It must not be stored in the repository, sent to the browser, or added as a `NEXT_PUBLIC_*` variable.
+The private hCaptcha secret belongs only in hCaptcha and **Supabase Authentication > Bot and Abuse Protection**. It must not be stored in the repository, sent to the browser, or added as a `NEXT_PUBLIC_*` variable.
 
 The login and forgot-password forms reset their one-time widget token after every request. Supabase verifies that token during password sign-in or recovery-email creation. GitHub OAuth, the OAuth callback, MFA, remembered devices, the recovered-session password update, and logout remain unchanged and do not receive a CAPTCHA token.
 
-Allow the production hostname in the Cloudflare widget. Add a trusted Vercel preview hostname only when preview authentication is intended. Use Cloudflare's documented test keys with a non-production Supabase project for local automated testing.
+Allow the production hostname in the hCaptcha site configuration. Add a trusted Vercel preview hostname only when preview authentication is intended. Use hCaptcha's documented test keys with a non-production Supabase project for local automated testing.
 
 ## TOTP and remembered devices
 

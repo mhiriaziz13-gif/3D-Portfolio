@@ -37,14 +37,14 @@ ADMIN_MFA_REMEMBER_DAYS=10
 
 NEXT_PUBLIC_GITHUB_USERNAME=mhiriaziz13-gif
 GITHUB_TOKEN=
-NEXT_PUBLIC_CAPTCHA_PROVIDER=turnstile
+NEXT_PUBLIC_CAPTCHA_PROVIDER=hcaptcha
 NEXT_PUBLIC_CAPTCHA_SITE_KEY=
 NEXT_PUBLIC_GA_MEASUREMENT_ID=G-W7WJF6YR9X
 ```
 
 Keep `REQUIRE_ADMIN_MFA=false` until `/admin/security` enrollment works.
 
-The CAPTCHA site key is public. Keep the matching Turnstile secret only in Cloudflare and Supabase **Authentication > Bot and Abuse Protection**; do not add it to Vercel or the repository. Redeploy after changing either `NEXT_PUBLIC_CAPTCHA_*` value.
+The CAPTCHA site key is public. Keep the matching hCaptcha secret only in hCaptcha and Supabase **Authentication > Bot and Abuse Protection**; do not add it to Vercel or the repository. Redeploy after changing either `NEXT_PUBLIC_CAPTCHA_*` value.
 
 ## 3. Supabase SQL
 
