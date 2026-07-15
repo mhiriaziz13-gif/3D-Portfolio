@@ -65,8 +65,8 @@ For password recovery, the email template should include:
 
 For production project `qflchsmvszbesfnomdeo`, open **Authentication > Bot and Abuse Protection** and configure:
 
-- Provider: **Cloudflare Turnstile**
-- Secret key: the private secret from the matching Cloudflare Turnstile widget
+- Provider: **hCaptcha**
+- Secret key: the private secret from the matching hCaptcha site
 - CAPTCHA protection: enabled
 
 The app renders the public widget only on `/admin/login` and `/admin/forgot-password`. It passes the resulting token to Supabase Auth for `signInWithPassword` and `resetPasswordForEmail`; it does not verify tokens with the provider secret itself.
@@ -74,11 +74,11 @@ The app renders the public widget only on `/admin/login` and `/admin/forgot-pass
 Set these public build variables locally and in Vercel:
 
 ```text
-NEXT_PUBLIC_CAPTCHA_PROVIDER=turnstile
-NEXT_PUBLIC_CAPTCHA_SITE_KEY=your-public-turnstile-site-key
+NEXT_PUBLIC_CAPTCHA_PROVIDER=hcaptcha
+NEXT_PUBLIC_CAPTCHA_SITE_KEY=your-public-hcaptcha-site-key
 ```
 
-Never add the Turnstile secret to a `NEXT_PUBLIC_*` variable. Keep it in Cloudflare and the Supabase Auth CAPTCHA configuration. Add only the required production, trusted preview, or development hostnames to the Turnstile widget.
+Never add the hCaptcha secret to a `NEXT_PUBLIC_*` variable. Keep it in hCaptcha and the Supabase Auth CAPTCHA configuration. Add only the required production, trusted preview, or development hostnames to the hCaptcha site.
 
 ## 5. GitHub OAuth
 

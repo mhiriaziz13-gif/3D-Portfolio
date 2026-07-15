@@ -4,10 +4,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const captchaProvider = (
   process.env.NEXT_PUBLIC_CAPTCHA_PROVIDER || ""
 ).trim().toLowerCase();
-const turnstileOrigin =
-  captchaProvider === "turnstile"
-    ? "https://challenges.cloudflare.com"
-    : "";
+const hcaptchaSources =
+  captchaProvider === "hcaptcha"
+    ? ["https://hcaptcha.com", "https://*.hcaptcha.com"]
+    : [];
 const supabaseOrigin = (() => {
   try {
     return supabaseUrl ? new URL(supabaseUrl).origin : "";
@@ -28,7 +28,7 @@ const connectSources = [
   "https://www.google-analytics.com",
   "https://region1.google-analytics.com",
   "https://vitals.vercel-insights.com",
-  turnstileOrigin,
+  ...hcaptchaSources,
 ].filter(Boolean).join(" ");
 
 const scriptSources = [
@@ -37,10 +37,18 @@ const scriptSources = [
   ...(isDevelopment ? ["'unsafe-eval'"] : []),
   "https://www.googletagmanager.com",
   "https://va.vercel-scripts.com",
-  turnstileOrigin,
+  ...hcaptchaSources,
 ].filter(Boolean).join(" ");
 
-const frameSources = turnstileOrigin || "'none'";
+const frameSources = hcaptchaSources.length > 0
+  ? ["'self'", ...hcaptchaSources].join(" ")
+  : "'none'";
+
+const styleSources = [
+  "'self'",
+  "'unsafe-inline'",
+  ...hcaptchaSources,
+].join(" ");
 
 const imageSources = [
   "'self'",
@@ -62,7 +70,7 @@ const csp = [
   "default-src 'self'",
   `script-src ${scriptSources}`,
   "script-src-attr 'none'",
-  "style-src 'self' 'unsafe-inline'",
+  `style-src ${styleSources}`,
   `img-src ${imageSources}`,
   "font-src 'self' data:",
   `connect-src ${connectSources}`,
