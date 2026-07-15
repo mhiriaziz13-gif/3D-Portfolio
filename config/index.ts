@@ -3,6 +3,7 @@ import { isProductionDeployment, siteSeo } from "@/lib/seo/config";
 import { absoluteUrl } from "@/lib/seo/urls";
 
 const bingSiteVerification = process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || "DD704E07F3105765E0E7CDC8CA9E980A";
+const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "GZ_oefFbiVYu4Jb4QStHsKTNk5Rpjsy-C6ohR_vKQq4";
 
 export const siteConfig: Metadata = {
   metadataBase: new URL(siteSeo.url),
@@ -30,7 +31,7 @@ export const siteConfig: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: { icon: "/favicon.ico", apple: "/apple-icon.png" },
   robots: { index: isProductionDeployment, follow: isProductionDeployment, nocache: !isProductionDeployment },
-  verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION, other: { "msvalidate.01": bingSiteVerification } },
+  verification: { google: googleSiteVerification, other: { "msvalidate.01": bingSiteVerification } },
   openGraph: {
     title: "Ahmed Aziz Mhiri | Data-Driven Marketing & Commercial Analytics",
     description:
