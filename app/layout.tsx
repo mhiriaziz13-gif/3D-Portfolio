@@ -1,13 +1,13 @@
 export const revalidate = 60;
 
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import type { PropsWithChildren } from "react";
 
 import { DeferredAnalytics } from "@/components/main/deferred-analytics";
 import { DeferredStarBackground } from "@/components/main/deferred-star-background";
 import { Footer } from "@/components/main/footer";
 import { ImageFallbackController } from "@/components/main/image-fallback-controller";
+import { MicrosoftClarity } from "@/components/main/microsoft-clarity";
 import { Navbar } from "@/components/main/navbar";
 import { siteConfig } from "@/config";
 import { getPortfolioContent } from "@/lib/cms";
@@ -25,16 +25,8 @@ export default async function RootLayout({ children }: PropsWithChildren) {
 
   return (
     <html lang="en">
-      <head>
-        <Script id="microsoft-clarity" strategy="beforeInteractive">
-          {`(function(c,l,a,r,i,t,y){
-c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-})(window,document,"clarity","script","${clarityProjectId}");`}
-        </Script>
-      </head>
       <body className={cn("bg-[#030014] overflow-y-scroll overflow-x-hidden font-sans")}>
+        <MicrosoftClarity projectId={clarityProjectId} />
         <DeferredStarBackground />
         <ImageFallbackController />
         <Navbar profile={content.profile} navLinks={content.navLinks} />
