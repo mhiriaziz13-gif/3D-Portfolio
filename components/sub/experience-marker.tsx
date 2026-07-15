@@ -33,7 +33,7 @@ export const ExperienceMarker = ({
         <>
           <Image
             src={experience.logo}
-            alt=""
+            alt={`${experience.company} logo`}
             fill
             sizes="96px"
             className="object-contain p-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)]"

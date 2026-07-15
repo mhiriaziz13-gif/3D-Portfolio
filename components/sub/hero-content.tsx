@@ -95,7 +95,7 @@ export const HeroContent = ({ profile = fallbackPortfolioContent.profile, hero =
       >
         <Image
           src="/hero-bg.svg"
-          alt=""
+          alt="Futuristic space-themed developer workspace illustration"
           height={650}
           width={650}
           preload
