@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const isDevelopment = process.env.NODE_ENV === "development";
+const isNonProductionDeployment = isDevelopment || Boolean(process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production");
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const captchaProvider = (
   process.env.NEXT_PUBLIC_CAPTCHA_PROVIDER || ""
@@ -97,6 +98,8 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
+const noindexHeader = { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" };
+
 const nextConfig = {
   poweredByHeader: false,
   images: {
@@ -121,7 +124,14 @@ const nextConfig = {
     ],
   },
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      { source: "/(.*)", headers: isNonProductionDeployment ? [...securityHeaders, noindexHeader] : securityHeaders },
+      { source: "/admin/:path*", headers: [noindexHeader] },
+      { source: "/auth/:path*", headers: [noindexHeader] },
+      { source: "/api/:path*", headers: [noindexHeader] },
+      { source: "/cv/:path*.pdf", headers: [noindexHeader] },
+      { source: "/cv/:path*.docx", headers: [noindexHeader] },
+    ];
   },
 };
 

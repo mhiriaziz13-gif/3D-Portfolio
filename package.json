@@ -8,7 +8,9 @@
     "type-check": "tsc --noEmit",
     "start": "next start",
     "lint": "eslint .",
-    "security:verify": "node scripts/security/verify-production-security.mjs"
+    "security:verify": "node scripts/security/verify-production-security.mjs",
+    "seo:audit": "node scripts/seo/audit.mjs",
+    "content:audit": "node scripts/content/audit.mjs"
   },
   "author": {
     "name": "Ahmed Aziz Mhiri",

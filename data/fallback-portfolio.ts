@@ -21,15 +21,7 @@ const fallbackProjects: ProjectContent[] = projects.map((project, index) => ({
   slug: slugify(project.title),
   featured: index < 3,
   sortOrder: index,
-  sections: [
-    {
-      projectSlug: slugify(project.title),
-      title: "Overview",
-      body: project.description,
-      bullets: project.tags,
-      sortOrder: 0,
-    },
-  ],
+  sections: [],
 }));
 
 const fallbackResumes: ResumeContent[] = resumes.map((resume, index) => ({
@@ -47,9 +39,9 @@ export const fallbackPortfolioContent: PortfolioContent = {
     tagline: profile.tagline,
     dynamicTitles: [...dynamicTitles],
     primaryCtaLabel: "Contact Me",
-    primaryCtaHref: "/#contact",
+    primaryCtaHref: "/contact",
     secondaryCtaLabel: "View Projects",
-    secondaryCtaHref: "/#projects",
+    secondaryCtaHref: "/projects",
   },
   about: {
     title: "Data, commercial context and automation in one working view.",
@@ -66,8 +58,8 @@ export const fallbackPortfolioContent: PortfolioContent = {
   experience: experiences.map((experience, index) => ({ ...experience, sortOrder: index })),
   education: [
     {
-      institution: "Private Higher School of Engineering and Technology",
-      degree: "Master's student in Big Data Analytics & E-Commerce",
+      institution: "Institut des Hautes Études Commerciales de Carthage — IHEC Carthage",
+      degree: "Master's in Big Data Analytics & E-Commerce",
       startDate: "2025",
       endDate: "2027",
       status: "In progress",
@@ -75,11 +67,11 @@ export const fallbackPortfolioContent: PortfolioContent = {
       sortOrder: 0,
     },
     {
-      institution: "Business Intelligence Background",
-      degree: "Business Intelligence and data-oriented studies",
+      institution: "Institut des Hautes Études Commerciales de Carthage — IHEC Carthage",
+      degree: "Licence / Bachelor's degree in Business Intelligence — Mention Excellent, 19.5/20",
       startDate: "",
       endDate: "",
-      status: "Completed background",
+      status: "Completed",
       location: "Tunisia",
       sortOrder: 1,
     },

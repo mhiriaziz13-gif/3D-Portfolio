@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema } from "@/lib/seo/schema";
+
+export function Breadcrumbs({ items }: { items: { name: string; href: string }[] }) {
+  return <><nav aria-label="Breadcrumb" className="text-sm text-gray-400"><ol className="flex flex-wrap gap-2">{items.map((item, index) => <li key={item.href} className="flex gap-2">{index > 0 && <span aria-hidden="true">/</span>}<Link href={item.href} className="hover:text-cyan-100">{item.name}</Link></li>)}</ol></nav><JsonLd data={breadcrumbSchema(items)} /></>;
+}
