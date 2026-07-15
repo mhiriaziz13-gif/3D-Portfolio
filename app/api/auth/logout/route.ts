@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import {
-  clearRememberDeviceCookie,
   getAuthenticatedAdmin,
   writeAdminAudit,
 } from "@/lib/security/admin-auth";
@@ -40,8 +39,6 @@ export async function POST(request: Request) {
     new URL(next, url.origin),
     303,
   );
-
-  clearRememberDeviceCookie(response);
 
   return response;
 }
