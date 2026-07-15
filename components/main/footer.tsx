@@ -54,6 +54,9 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
       <p className="mx-auto mt-8 max-w-7xl text-sm text-gray-400">
         &copy; {profile.name} {new Date().getFullYear()}. All rights reserved.
       </p>
+      <nav aria-label="Footer navigation" className="mx-auto mt-6 flex max-w-7xl flex-wrap gap-x-5 gap-y-3 text-sm text-gray-400">
+        {[["About","/about"],["Expertise","/expertise"],["Projects","/projects"],["Experience","/experience"],["Education","/education"],["Certifications","/certifications"],["Resume","/resume"],["Contact","/contact"]].map(([label, href]) => <Link key={href} href={href} className="hover:text-cyan-100">{label}</Link>)}
+      </nav>
     </footer>
   );
 };

@@ -44,7 +44,7 @@ export const profile = {
     "Marketing Analytics | Commercial Analytics | Business Intelligence | Process Automation",
   tagline: "Turning Data into Commercial Growth",
   shortProfile:
-    "Master's student in Big Data Analytics & E-Commerce with a Business Intelligence background. I combine data analysis, digital marketing, process automation and commercial understanding to help organisations improve customer journeys, operational reliability and decision-making.",
+    "Master's student in Big Data Analytics & E-Commerce at IHEC Carthage with a completed Business Intelligence degree. I combine data analysis, digital marketing, process automation and commercial understanding to support customer journeys, operational reliability and decision-making.",
   about:
     "I work at the intersection of data, business context and automation, turning operational and customer information into clearer decisions, smoother workflows and stronger commercial visibility.",
   aboutFocus: [
@@ -66,12 +66,12 @@ export const dynamicTitles = [
 
 export const navLinks = [
   { title: "Home", href: "/" },
-  { title: "About", href: "/#about" },
-  { title: "Skills", href: "/#skills" },
-  { title: "Projects", href: "/#projects" },
-  { title: "Experience", href: "/#experience" },
+  { title: "About", href: "/about" },
+  { title: "Expertise", href: "/expertise" },
+  { title: "Projects", href: "/projects" },
+  { title: "Experience", href: "/experience" },
   { title: "CV", href: "/resume" },
-  { title: "Contact", href: "/#contact" },
+  { title: "Contact", href: "/contact" },
 ] as const;
 
 export const skillCategories: SkillCategory[] = [

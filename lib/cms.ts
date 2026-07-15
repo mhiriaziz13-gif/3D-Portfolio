@@ -92,11 +92,18 @@ const normalizeCmsAssetPath = (value: unknown, fallback: string) => {
   return localAssetAliases[path] ?? path;
 };
 
-const fallbackOnError = (error: unknown) => {
-  if (process.env.NODE_ENV !== "production") {
-    console.warn("CMS fallback used:", error);
-  }
-  return fallbackPortfolioContent;
+const emptyPublishedContent = (): PortfolioContent => ({
+  profile: { name: "", initials: "", avatarPath: "", location: "", email: "", linkedIn: "", linkedInLabel: "", github: "", githubLabel: "", availability: "", mainTitle: "", secondaryLine: "", tagline: "", shortProfile: "", about: "", aboutFocus: [] },
+  hero: { eyebrow: "", title: "", subtitle: "", tagline: "", dynamicTitles: [], primaryCtaLabel: "", primaryCtaHref: "/contact", secondaryCtaLabel: "", secondaryCtaHref: "/projects" },
+  about: { title: "", body: "", highlights: [], avatarUrl: "" },
+  skillCategories: [], projects: [], projectSections: [], experience: [], education: [], certifications: [], resumes: [], socialLinks: [],
+  navLinks: fallbackPortfolioContent.navLinks,
+});
+
+const failClosedOnError = (error: unknown) => {
+  const detail = error instanceof Error ? error.message.slice(0, 160) : "unknown public CMS error";
+  console.warn(`Public CMS discovery failed; returning no uncertain published rows. ${detail}`);
+  return emptyPublishedContent();
 };
 
 export const getPortfolioContent = async (): Promise<PortfolioContent> => {
@@ -147,7 +154,7 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
     const profile = profileRow
       ? {
           ...fallbackPortfolioContent.profile,
-          name: String(profileRow.full_name ?? fallbackPortfolioContent.profile.name),
+          name: fallbackPortfolioContent.profile.name,
           initials: String(profileRow.initials ?? fallbackPortfolioContent.profile.initials),
           avatarPath: String(profileRow.avatar_url ?? fallbackPortfolioContent.profile.avatarPath),
           location: String(profileRow.location ?? fallbackPortfolioContent.profile.location),
@@ -164,12 +171,12 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
           about: String(profileRow.about_text ?? fallbackPortfolioContent.profile.about),
           aboutFocus: asStringArray(profileRow.about_focus).length ? asStringArray(profileRow.about_focus) : fallbackPortfolioContent.profile.aboutFocus,
         }
-      : fallbackPortfolioContent.profile;
+      : emptyPublishedContent().profile;
 
     const hero = heroRow
       ? {
           eyebrow: String(heroRow.eyebrow ?? profile.mainTitle),
-          title: String(heroRow.title ?? profile.name),
+          title: profile.name,
           subtitle: String(heroRow.subtitle ?? profile.secondaryLine),
           tagline: String(heroRow.tagline ?? profile.tagline),
           dynamicTitles: asStringArray(heroRow.dynamic_titles).length ? asStringArray(heroRow.dynamic_titles) : fallbackPortfolioContent.hero.dynamicTitles,
@@ -178,7 +185,7 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
           secondaryCtaLabel: String(heroRow.secondary_cta_label ?? fallbackPortfolioContent.hero.secondaryCtaLabel),
           secondaryCtaHref: String(heroRow.secondary_cta_href ?? fallbackPortfolioContent.hero.secondaryCtaHref),
         }
-      : { ...fallbackPortfolioContent.hero, eyebrow: profile.mainTitle, title: profile.name, subtitle: profile.secondaryLine, tagline: profile.tagline };
+      : emptyPublishedContent().hero;
 
     const about = aboutRow
       ? {
@@ -187,7 +194,7 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
           highlights: asStringArray(aboutRow.highlights).length ? asStringArray(aboutRow.highlights) : profile.aboutFocus,
           avatarUrl: String(aboutRow.avatar_url ?? profile.avatarPath),
         }
-      : { ...fallbackPortfolioContent.about, body: profile.about, highlights: profile.aboutFocus, avatarUrl: profile.avatarPath };
+      : emptyPublishedContent().about;
 
     const groupedSkills = new Map<string, string[]>();
     sortByOrder(skillsRows).forEach((row) => {
@@ -199,7 +206,7 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
 
     const skillCategories: SkillCategory[] = groupedSkills.size
       ? Array.from(groupedSkills.entries()).map(([title, skills]) => ({ title, skills }))
-      : fallbackPortfolioContent.skillCategories;
+      : [];
 
     const sectionsByProjectId = new Map<string, ProjectSectionContent[]>();
     sortByOrder(sectionRows).forEach((row) => {
@@ -267,9 +274,9 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
       hero,
       about,
       skillCategories,
-      projects: projects.length ? projects : fallbackPortfolioContent.projects,
+      projects,
       projectSections: projects.flatMap((project) => project.sections ?? []),
-      experience: experience.length ? experience : fallbackPortfolioContent.experience,
+      experience,
       education: sortByOrder(educationRows).map((row, index) => ({
         institution: String(row.institution ?? ""),
         degree: String(row.degree ?? ""),
@@ -290,7 +297,7 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
         tags: asStringArray(row.tags),
         sortOrder: Number(row.sort_order ?? index),
       })),
-      resumes: resumes.length ? resumes : fallbackPortfolioContent.resumes,
+      resumes,
       socialLinks: sortByOrder(socialLinkRows).map((row, index) => ({
         label: String(row.label ?? ""),
         url: String(row.url ?? ""),
@@ -302,7 +309,7 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
 
     return content;
   } catch (error) {
-    return fallbackOnError(error);
+    return failClosedOnError(error);
   }
 };
 
