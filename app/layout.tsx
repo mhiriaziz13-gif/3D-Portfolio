@@ -18,7 +18,7 @@ import "./globals.css";
 export const viewport: Viewport = { themeColor: "#030014" };
 export const metadata: Metadata = siteConfig;
 const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-W7WJF6YR9X";
-const clarityProjectId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || "xmuct2445j";
+const clarityProjectId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || "xmulwka8eu";
 
 export default async function RootLayout({ children }: PropsWithChildren) {
   const content = await getPortfolioContent();
@@ -29,7 +29,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
         <Script id="microsoft-clarity" strategy="beforeInteractive">
           {`(function(c,l,a,r,i,t,y){
 c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i+"?ref=bwt";
+t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
 y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
 })(window,document,"clarity","script","${clarityProjectId}");`}
         </Script>
