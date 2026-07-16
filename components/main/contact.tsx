@@ -36,7 +36,7 @@ export const Contact = ({ profile = fallbackPortfolioContent.profile }: { profil
         <div className="mt-6 flex flex-wrap gap-3 text-sm">
           <Link
             href={`mailto:${profile.email}`}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-gray-200 transition hover:bg-white/10"
+            className="button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 font-semibold"
           >
             <EnvelopeIcon className="h-4 w-4" />
             {profile.email}
@@ -46,7 +46,7 @@ export const Contact = ({ profile = fallbackPortfolioContent.profile }: { profil
             aria-label="LinkedIn profile"
             target="_blank"
             rel="noreferrer noopener"
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-gray-200 transition hover:bg-white/10"
+            className="button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 font-semibold"
           >
             <LinkIcon className="h-4 w-4" />
             LinkedIn
@@ -56,7 +56,7 @@ export const Contact = ({ profile = fallbackPortfolioContent.profile }: { profil
             aria-label="GitHub profile"
             target="_blank"
             rel="noreferrer noopener"
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-gray-200 transition hover:bg-white/10"
+            className="button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 font-semibold"
           >
             <FaGithub className="h-4 w-4" />
             GitHub
@@ -64,7 +64,7 @@ export const Contact = ({ profile = fallbackPortfolioContent.profile }: { profil
           <Link
             href="/resume"
             aria-label="View CV"
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-gray-200 transition hover:bg-white/10"
+            className="button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 font-semibold"
           >
             <ArrowDownTrayIcon className="h-4 w-4" />
             View CV

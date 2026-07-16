@@ -39,8 +39,8 @@ export const ProjectCard = ({
           ))}
         </div>
         {href && (
-          <Link href={href} className="mt-2 inline-flex w-fit rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 transition hover:bg-white/10 hover:text-cyan-100">
-            View details
+          <Link href={href} className="button-secondary mt-2 inline-flex w-fit items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold">
+            View details <span aria-hidden="true">→</span>
           </Link>
         )}
       </div>

@@ -41,8 +41,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       <article className="relative z-[20] mx-auto flex w-full max-w-5xl flex-col gap-8">
         <JsonLd data={projectSchema(project)} />
         <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "Projects", href: "/projects" }, { name: project.title, href: `/projects/${project.slug}` }]} />
-        <Link href="/projects" className="w-fit rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-200 transition hover:bg-white/10 hover:text-cyan-100">
-          Back to projects
+        <Link href="/projects" className="button-secondary inline-flex w-fit items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold">
+          <span aria-hidden="true">←</span> Back to projects
         </Link>
 
         <div>
@@ -96,7 +96,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             </section>
           ))}
         </div>}
-        <section className="rounded-lg border border-white/10 bg-[#100b24]/90 p-6"><h2 className="text-2xl font-bold text-white">Related work</h2><div className="mt-4 flex flex-col gap-3">{related.map((item) => <Link key={item.slug} href={`/projects/${item.slug}`} className="text-cyan-100 hover:underline">View the {item.title} case study</Link>)}</div><div className="mt-7 flex flex-wrap gap-3"><Link href="/expertise" className="rounded-lg border border-white/10 px-4 py-2 text-gray-200">Explore relevant expertise</Link><Link href="/experience" className="rounded-lg border border-white/10 px-4 py-2 text-gray-200">Review professional experience</Link><Link href="/contact" className="button-primary rounded-lg px-4 py-2 text-white">Discuss a related opportunity</Link></div></section>
+        <section className="rounded-lg border border-white/10 bg-[#100b24]/90 p-6"><h2 className="text-2xl font-bold text-white">Related work</h2><div className="mt-4 flex flex-col gap-3">{related.map((item) => <Link key={item.slug} href={`/projects/${item.slug}`} className="action-link w-fit">View the {item.title} case study</Link>)}</div><div className="mt-7 flex flex-wrap gap-3"><Link href="/expertise" className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">Explore relevant expertise</Link><Link href="/experience" className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">Review professional experience</Link><Link href="/contact" className="button-primary rounded-lg px-4 py-2.5 text-sm font-semibold text-white">Discuss a related opportunity</Link></div></section>
       </article>
     </main>
   );

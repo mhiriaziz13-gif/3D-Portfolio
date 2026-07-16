@@ -51,7 +51,7 @@ export const HeroContent = ({ profile = fallbackPortfolioContent.profile, hero =
           <Link
             href={hero.primaryCtaHref}
             prefetch={false}
-            className="button-primary inline-flex w-full items-center justify-center gap-2 rounded-lg px-7 py-4 text-center text-base font-bold text-white shadow-[0_0_32px_rgba(112,66,248,0.45)] transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-cyan-300 sm:w-fit sm:self-center lg:self-start"
+            className="button-primary inline-flex w-full items-center justify-center gap-2 rounded-lg px-7 py-4 text-center text-base font-bold text-white sm:w-fit sm:self-center lg:self-start"
           >
             <EnvelopeIcon className="h-5 w-5" />
             {hero.primaryCtaLabel}
@@ -61,7 +61,7 @@ export const HeroContent = ({ profile = fallbackPortfolioContent.profile, hero =
             <Link
               href={hero.secondaryCtaHref}
               prefetch={false}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#7042f88b] bg-white/5 px-5 py-3 text-center text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              className="button-secondary inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-center"
             >
               <BriefcaseIcon className="h-5 w-5" />
               {hero.secondaryCtaLabel}
@@ -70,7 +70,7 @@ export const HeroContent = ({ profile = fallbackPortfolioContent.profile, hero =
               href="/resume"
               prefetch={false}
               aria-label="View CV"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#7042f88b] bg-white/5 px-5 py-3 text-center text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              className="button-secondary inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-center"
             >
               <ArrowDownTrayIcon className="h-5 w-5" />
               View CV
@@ -80,7 +80,7 @@ export const HeroContent = ({ profile = fallbackPortfolioContent.profile, hero =
               aria-label="GitHub profile"
               target="_blank"
               rel="noreferrer noopener"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-5 py-3 text-center text-gray-300 transition hover:bg-white/10 hover:text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+              className="button-secondary inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-center"
             >
               <FaGithub className="h-5 w-5" />
               GitHub

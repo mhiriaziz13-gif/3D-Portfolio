@@ -137,7 +137,7 @@ export const CertificationsSection = ({
         {preview && (
           <Link
             href="/resume#certifications"
-            className="inline-flex w-fit items-center gap-2 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-4 py-2.5 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300/50 hover:bg-cyan-300/15 focus:outline-none focus:ring-2 focus:ring-cyan-300"
+            className="button-secondary inline-flex w-fit items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold"
           >
             View all certifications
             <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />

@@ -16,7 +16,7 @@ export function PageIntro({ eyebrow, title, description, links = [] }: PageIntro
       {links.length > 0 && (
         <nav aria-label="Related pages" className="mt-6 flex flex-wrap gap-3">
           {links.map((link) => (
-            <Link key={link.href} href={link.href} className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-cyan-100 transition hover:bg-white/10">
+            <Link key={link.href} href={link.href} className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">
               {link.label}
             </Link>
           ))}
