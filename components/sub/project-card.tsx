@@ -18,7 +18,15 @@ export const ProjectCard = ({
   href,
 }: ProjectCardProps) => {
   return (
-    <article className="group relative overflow-hidden rounded-lg border border-[#2A0E61] bg-[#08021c]/70 shadow-lg shadow-[#2A0E61]/20 backdrop-blur-sm">
+    <article className="group relative overflow-hidden rounded-lg border border-[#2A0E61] bg-[#08021c]/70 shadow-lg shadow-[#2A0E61]/20 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-cyan-300/60 hover:shadow-xl hover:shadow-cyan-500/10 focus-within:border-cyan-300 focus-within:outline focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-cyan-300">
+      {href && (
+        <Link
+          href={href}
+          aria-label={`View project: ${title}`}
+          className="absolute inset-0 z-10 rounded-lg focus:outline-none"
+        />
+      )}
+
       <div className="relative aspect-[16/9] overflow-hidden border-b border-white/10 bg-[#030014]">
         <ProjectArtwork src={src} title={title} />
       </div>
@@ -39,9 +47,9 @@ export const ProjectCard = ({
           ))}
         </div>
         {href && (
-          <Link href={href} className="button-secondary mt-2 inline-flex w-fit items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold">
-            View details <span aria-hidden="true">→</span>
-          </Link>
+          <span className="button-secondary mt-2 inline-flex w-fit items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition group-hover:border-cyan-300/80 group-hover:text-white" aria-hidden="true">
+            View details <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
+          </span>
         )}
       </div>
     </article>

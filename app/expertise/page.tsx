@@ -28,7 +28,7 @@ export default async function ExpertisePage() {
             <p className="mt-3 leading-7 text-gray-300">{explanations[category.title] || "Skills used to support practical business and technical deliverables."}</p>
             <p className="mt-3 text-sm text-gray-300"><strong className="text-white">Deliverables:</strong> analysis, reports, workflows, interfaces or integrations appropriate to the problem.</p>
             <p className="mt-3 text-sm text-cyan-100">Tools and methods: {category.skills.join(", ")}</p>
-            <div className="mt-4 flex flex-col gap-2">{(projectLinks[category.title] || []).map((project) => { const published = content.projects.find((item) => item.title === project.title); return published ? <Link key={published.slug} href={`/projects/${published.slug}`} className="text-sm text-purple-200 hover:text-cyan-100">See the {project.label} case study</Link> : null; })}</div>
+            <div className="mt-5 flex flex-col items-start gap-3">{(projectLinks[category.title] || []).map((project) => { const published = content.projects.find((item) => item.title === project.title); return published ? <Link key={published.slug} href={`/projects/${published.slug}`} className="button-secondary group inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold">See the {project.label} case study <span aria-hidden="true" className="transition-transform duration-200 group-hover:translate-x-1">→</span></Link> : null; })}</div>
           </section>
         ))}
       </div>
