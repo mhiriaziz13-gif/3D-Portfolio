@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Script from "next/script";
 import { useEffect, useState } from "react";
 
 const Analytics = dynamic(
@@ -26,11 +25,7 @@ type WindowWithIdleCallback = Window & {
 
 const ANALYTICS_DEFER_MS = 12000;
 
-export const DeferredAnalytics = ({
-  gaMeasurementId,
-}: {
-  gaMeasurementId?: string;
-}) => {
+export const DeferredAnalytics = () => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -91,20 +86,6 @@ export const DeferredAnalytics = ({
     <>
       <Analytics />
       <SpeedInsights />
-      {gaMeasurementId && (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
-            strategy="lazyOnload"
-          />
-          <Script id="google-analytics" strategy="lazyOnload">
-            {`window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${gaMeasurementId}');`}
-          </Script>
-        </>
-      )}
     </>
   );
 };

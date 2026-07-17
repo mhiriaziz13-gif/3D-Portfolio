@@ -5,7 +5,7 @@ import { useConsent } from "@/components/consent/consent-manager";
 export const CookiePreferencesButton = () => {
   const consent = useConsent();
 
-  if (!consent) return null;
+  if (!consent?.isAvailable) return null;
 
   return (
     <button

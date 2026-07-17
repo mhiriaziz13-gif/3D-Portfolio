@@ -8,41 +8,27 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { usePathname } from "next/navigation";
 
+import { GoogleTagManager } from "@/components/analytics/google-tag-manager";
 import { DeferredAnalytics } from "@/components/main/deferred-analytics";
 import { MicrosoftClarity } from "@/components/main/microsoft-clarity";
+import {
+  setAnalyticsCollectionEnabled,
+  updateGoogleConsent,
+} from "@/lib/analytics/data-layer";
+import { isPublicAnalyticsRoute } from "@/lib/analytics/routes";
 
 type ConsentPreference = "accepted" | "rejected";
 
 type ConsentContextValue = {
+  isAvailable: boolean;
   openPreferences: () => void;
 };
 
 const CONSENT_STORAGE_KEY = "analytics-consent";
 const CONSENT_CHANGE_EVENT = "analytics-consent-change";
 const ConsentContext = createContext<ConsentContextValue | null>(null);
-
-declare global {
-  interface Window {
-    dataLayer: unknown[];
-    gtag?: (...args: unknown[]) => void;
-  }
-}
-
-const updateGoogleConsent = (analyticsStorage: "granted" | "denied") => {
-  window.dataLayer = window.dataLayer || [];
-  window.gtag =
-    window.gtag ||
-    function gtag() {
-      window.dataLayer.push(arguments);
-    };
-  window.gtag("consent", "update", {
-    analytics_storage: analyticsStorage,
-    ad_storage: "denied",
-    ad_user_data: "denied",
-    ad_personalization: "denied",
-  });
-};
 
 const getStoredPreference = (): ConsentPreference | null => {
   const storedPreference = window.localStorage.getItem(CONSENT_STORAGE_KEY);
@@ -67,13 +53,18 @@ const subscribeToPreference = (onStoreChange: () => void) => {
 
 export const ConsentManager = ({
   children,
-  gaMeasurementId,
+  analyticsEnabled,
+  gtmContainerId,
   clarityProjectId,
 }: {
   children: React.ReactNode;
-  gaMeasurementId?: string;
+  analyticsEnabled: boolean;
+  gtmContainerId?: string;
   clarityProjectId?: string;
 }) => {
+  const pathname = usePathname();
+  const isCollectionRoute =
+    analyticsEnabled && isPublicAnalyticsRoute(pathname);
   const preference = useSyncExternalStore(
     subscribeToPreference,
     getStoredPreference,
@@ -88,8 +79,13 @@ export const ConsentManager = ({
   const [statisticsEnabled, setStatisticsEnabled] = useState(false);
 
   useEffect(() => {
-    updateGoogleConsent(preference === "accepted" ? "granted" : "denied");
-  }, [preference]);
+    const hasAnalyticsConsent =
+      isCollectionRoute && preference === "accepted";
+    setAnalyticsCollectionEnabled(hasAnalyticsConsent);
+    updateGoogleConsent(hasAnalyticsConsent ? "granted" : "denied");
+
+    return () => setAnalyticsCollectionEnabled(false);
+  }, [isCollectionRoute, preference]);
 
   const savePreference = (nextPreference: ConsentPreference) => {
     window.localStorage.setItem(CONSENT_STORAGE_KEY, nextPreference);
@@ -100,24 +96,31 @@ export const ConsentManager = ({
 
   const contextValue = useMemo(
     () => ({
+      isAvailable: isCollectionRoute,
       openPreferences: () => {
+        if (!isCollectionRoute) return;
         setStatisticsEnabled(preference === "accepted");
         setIsManaging(true);
       },
     }),
-    [preference],
+    [isCollectionRoute, preference],
   );
 
-  const showBanner = isHydrated && preference === null && !isManaging;
+  const showBanner =
+    isHydrated && isCollectionRoute && preference === null && !isManaging;
 
   return (
     <ConsentContext.Provider value={contextValue}>
       {children}
 
-      {preference === "accepted" && (
+      {isCollectionRoute && gtmContainerId && (
+        <GoogleTagManager containerId={gtmContainerId} />
+      )}
+
+      {isCollectionRoute && preference === "accepted" && (
         <>
           {clarityProjectId && <MicrosoftClarity projectId={clarityProjectId} />}
-          <DeferredAnalytics gaMeasurementId={gaMeasurementId} />
+          <DeferredAnalytics />
         </>
       )}
 
@@ -156,7 +159,7 @@ export const ConsentManager = ({
         </section>
       )}
 
-      {isManaging && (
+      {isCollectionRoute && isManaging && (
         <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/70 p-4 sm:items-center">
           <section
             role="dialog"
