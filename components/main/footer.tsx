@@ -2,6 +2,7 @@ import { EnvelopeIcon, MapPinIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
 import { FaGithub, FaLinkedinIn } from "react-icons/fa6";
 
+import { CookiePreferencesButton } from "@/components/consent/cookie-preferences-button";
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
 import type { ProfileContent } from "@/lib/cms-types";
 
@@ -56,6 +57,7 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
       </p>
       <nav aria-label="Footer navigation" className="mx-auto mt-6 flex max-w-7xl flex-wrap gap-x-5 gap-y-3 text-sm text-gray-400">
         {[["About","/about"],["Expertise","/expertise"],["Projects","/projects"],["Experience","/experience"],["Education","/education"],["Certifications","/certifications"],["Resume","/resume"],["Contact","/contact"]].map(([label, href]) => <Link key={href} href={href} className="hover:text-cyan-100">{label}</Link>)}
+        <CookiePreferencesButton />
       </nav>
     </footer>
   );

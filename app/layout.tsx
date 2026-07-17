@@ -4,11 +4,10 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import type { PropsWithChildren } from "react";
 
-import { DeferredAnalytics } from "@/components/main/deferred-analytics";
+import { ConsentManager } from "@/components/consent/consent-manager";
 import { DeferredStarBackground } from "@/components/main/deferred-star-background";
 import { Footer } from "@/components/main/footer";
 import { ImageFallbackController } from "@/components/main/image-fallback-controller";
-import { MicrosoftClarity } from "@/components/main/microsoft-clarity";
 import { Navbar } from "@/components/main/navbar";
 import { siteConfig } from "@/config";
 import { getPortfolioContent } from "@/lib/cms";
@@ -27,8 +26,19 @@ export default async function RootLayout({ children }: PropsWithChildren) {
 
   return (
     <html lang="en">
-      {gtmContainerId && (
-        <head>
+      <head>
+        <Script id="google-consent-default" strategy="beforeInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent', 'default', {
+  analytics_storage: 'denied',
+  ad_storage: 'denied',
+  ad_user_data: 'denied',
+  ad_personalization: 'denied',
+  wait_for_update: 500
+});`}
+        </Script>
+        {gtmContainerId && (
           <Script id="google-tag-manager" strategy="beforeInteractive">
             {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -36,27 +46,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','${gtmContainerId}');`}
           </Script>
-        </head>
-      )}
-      <body className={cn("bg-[#030014] overflow-y-scroll overflow-x-hidden font-sans")}>
-        {gtmContainerId && (
-          <noscript>
-            <iframe
-              src={`https://www.googletagmanager.com/ns.html?id=${gtmContainerId}`}
-              height="0"
-              width="0"
-              style={{ display: "none", visibility: "hidden" }}
-              title="Google Tag Manager"
-            />
-          </noscript>
         )}
-        <MicrosoftClarity projectId={clarityProjectId} />
-        <DeferredStarBackground />
-        <ImageFallbackController />
-        <Navbar profile={content.profile} navLinks={content.navLinks} />
-        {children}
-        <Footer profile={content.profile} />
-        <DeferredAnalytics gaMeasurementId={gaMeasurementId} />
+      </head>
+      <body className={cn("bg-[#030014] overflow-y-scroll overflow-x-hidden font-sans")}>
+        <ConsentManager
+          gaMeasurementId={gaMeasurementId}
+          clarityProjectId={clarityProjectId}
+        >
+          <DeferredStarBackground />
+          <ImageFallbackController />
+          <Navbar profile={content.profile} navLinks={content.navLinks} />
+          {children}
+          <Footer profile={content.profile} />
+        </ConsentManager>
       </body>
     </html>
   );
