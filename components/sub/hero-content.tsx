@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FaGithub } from "react-icons/fa6";
 
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { DynamicTitle } from "@/components/sub/dynamic-title";
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
 import type { HeroContentData, ProfileContent } from "@/lib/cms-types";
@@ -48,14 +49,15 @@ export const HeroContent = ({ profile = fallbackPortfolioContent.profile, hero =
         </div>
 
         <div className="flex flex-col gap-3">
-          <Link
+          <TrackedLink
             href={hero.primaryCtaHref}
+            analyticsEvent={{ event: "contact_cta_click", cta_location: "hero" }}
             prefetch={false}
             className="button-primary inline-flex w-full items-center justify-center gap-2 rounded-lg px-7 py-4 text-center text-base font-bold text-white sm:w-fit sm:self-center lg:self-start"
           >
             <EnvelopeIcon className="h-5 w-5" />
             {hero.primaryCtaLabel}
-          </Link>
+          </TrackedLink>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
             <Link

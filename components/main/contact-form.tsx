@@ -3,6 +3,8 @@
 import { EnvelopeIcon } from "@heroicons/react/24/solid";
 import { type FormEvent, useState } from "react";
 
+import { pushAnalyticsEvent } from "@/lib/analytics/data-layer";
+
 type ContactFormState = {
   name: string;
   email: string;
@@ -43,19 +45,30 @@ export const ContactForm = ({ recipient }: { recipient: string }) => {
       const data = await response.json().catch(() => ({}));
 
       if (response.ok && data.ok && !data.fallback) {
+        pushAnalyticsEvent({ event: "contact_submit_success" });
         setForm(initialForm);
         setStatus(data.message ?? "Message sent. Thank you.");
         return;
       }
 
       if (data.fallback) {
+        pushAnalyticsEvent({ event: "contact_fallback_mailto" });
         window.location.href = buildMailto(form, recipient);
         setStatus("Your email app should open with a drafted message.");
         return;
       }
 
+      pushAnalyticsEvent({
+        event: "contact_submit_error",
+        error_type: "api_error",
+      });
       setStatus(data.error ?? "Message could not be sent right now.");
     } catch {
+      pushAnalyticsEvent({
+        event: "contact_submit_error",
+        error_type: "network_error",
+      });
+      pushAnalyticsEvent({ event: "contact_fallback_mailto" });
       window.location.href = buildMailto(form, recipient);
       setStatus("Your email app should open with a drafted message.");
     } finally {

@@ -1,10 +1,13 @@
 import Link from "next/link";
 
+import { TrackedLink } from "@/components/analytics/tracked-link";
+import type { AnalyticsEvent } from "@/lib/analytics/data-layer";
+
 type PageIntroProps = {
   eyebrow: string;
   title: string;
   description: string;
-  links?: { href: string; label: string }[];
+  links?: { href: string; label: string; analyticsEvent?: AnalyticsEvent }[];
 };
 
 export function PageIntro({ eyebrow, title, description, links = [] }: PageIntroProps) {
@@ -15,11 +18,17 @@ export function PageIntro({ eyebrow, title, description, links = [] }: PageIntro
       <p className="mt-5 max-w-3xl text-base leading-8 text-gray-300 sm:text-lg">{description}</p>
       {links.length > 0 && (
         <nav aria-label="Related pages" className="mt-6 flex flex-wrap gap-3">
-          {links.map((link) => (
-            <Link key={link.href} href={link.href} className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">
-              {link.label}
-            </Link>
-          ))}
+          {links.map((link) =>
+            link.analyticsEvent ? (
+              <TrackedLink key={link.href} href={link.href} analyticsEvent={link.analyticsEvent} className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">
+                {link.label}
+              </TrackedLink>
+            ) : (
+              <Link key={link.href} href={link.href} className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">
+                {link.label}
+              </Link>
+            ),
+          )}
         </nav>
       )}
     </header>

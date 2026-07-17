@@ -2,6 +2,7 @@ import { EnvelopeIcon, MapPinIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
 import { FaGithub, FaLinkedinIn } from "react-icons/fa6";
 
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { CookiePreferencesButton } from "@/components/consent/cookie-preferences-button";
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
 import type { ProfileContent } from "@/lib/cms-types";
@@ -22,15 +23,17 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
             <MapPinIcon className="h-4 w-4 text-cyan-200" />
             {profile.location}
           </span>
-          <Link
+          <TrackedLink
             href={`mailto:${profile.email}`}
+            analyticsEvent={{ event: "contact_cta_click", cta_location: "footer" }}
             className="inline-flex items-center gap-2 transition hover:text-cyan-100"
           >
             <EnvelopeIcon className="h-4 w-4 text-purple-200" />
             {profile.email}
-          </Link>
-          <Link
+          </TrackedLink>
+          <TrackedLink
             href={profile.github}
+            analyticsEvent={{ event: "profile_link_click", platform: "github", link_location: "footer" }}
             aria-label={`${profile.githubLabel} — GitHub profile`}
             target="_blank"
             rel="noreferrer noopener"
@@ -38,9 +41,10 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
           >
             <FaGithub className="h-4 w-4 text-gray-200" />
             {profile.githubLabel}
-          </Link>
-          <Link
+          </TrackedLink>
+          <TrackedLink
             href={profile.linkedIn}
+            analyticsEvent={{ event: "profile_link_click", platform: "linkedin", link_location: "footer" }}
             aria-label={`${profile.linkedInLabel} — LinkedIn profile`}
             target="_blank"
             rel="noreferrer noopener"
@@ -48,7 +52,7 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
           >
             <FaLinkedinIn className="h-4 w-4 text-[#0A66C2]" />
             {profile.linkedInLabel}
-          </Link>
+          </TrackedLink>
         </div>
       </div>
 

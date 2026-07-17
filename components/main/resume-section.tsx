@@ -1,6 +1,7 @@
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 import Link from "next/link";
 
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
 import type { ResumeContent } from "@/lib/cms-types";
 
@@ -9,14 +10,31 @@ type ResumeSectionProps = {
   resumes?: ResumeContent[];
 };
 
+type CvVariant = "english" | "french" | "canada" | "ats";
+
+const resolveCvVariant = (resume: ResumeContent): CvVariant | null => {
+  const value = `${resume.variant} ${resume.title}`.toLowerCase();
+  if (value.includes("english")) return "english";
+  if (value.includes("french") || value.includes("francais")) return "french";
+  if (value.includes("canada")) return "canada";
+  if (value.includes("ats")) return "ats";
+  return null;
+};
+
 const DownloadAction = ({
   href,
   label,
   available,
+  variant,
+  fileFormat,
+  ctaLocation,
 }: {
   href: string;
   label: string;
   available: boolean;
+  variant: CvVariant | null;
+  fileFormat: "pdf" | "docx";
+  ctaLocation: "home" | "resume_page";
 }) => {
   const className =
     "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-300";
@@ -33,19 +51,39 @@ const DownloadAction = ({
     );
   }
 
-  return (
-    <Link
-      href={href}
-      download
-      className={`${className} button-primary text-white`}
-    >
+  const content = (
+    <>
       <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
       {label}
-    </Link>
+    </>
+  );
+
+  if (!variant) {
+    return (
+      <Link href={href} download className={`${className} button-primary text-white`}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <TrackedLink
+      href={href}
+      download
+      analyticsEvent={{
+        event: "cv_download",
+        cv_variant: variant,
+        file_format: fileFormat,
+        cta_location: ctaLocation,
+      }}
+      className={`${className} button-primary text-white`}
+    >
+      {content}
+    </TrackedLink>
   );
 };
 
-const ResumeCard = ({ resume }: { resume: ResumeContent }) => (
+const ResumeCard = ({ resume, ctaLocation }: { resume: ResumeContent; ctaLocation: "home" | "resume_page" }) => (
   <article className="rounded-lg border border-white/10 bg-[#08021c]/75 p-5 shadow-lg shadow-[#2A0E61]/20 backdrop-blur-md">
     <div className="flex items-start justify-between gap-4">
       <h3 className="text-lg font-semibold text-white">{resume.title}</h3>
@@ -60,11 +98,17 @@ const ResumeCard = ({ resume }: { resume: ResumeContent }) => (
         href={resume.pdfPath}
         label="Download PDF"
         available={resume.available}
+        variant={resolveCvVariant(resume)}
+        fileFormat="pdf"
+        ctaLocation={ctaLocation}
       />
       <DownloadAction
         href={resume.docxPath}
         label="Download DOCX"
         available={resume.available}
+        variant={resolveCvVariant(resume)}
+        fileFormat="docx"
+        ctaLocation={ctaLocation}
       />
     </div>
   </article>
@@ -115,7 +159,7 @@ export const ResumeSection = ({
         }
       >
         {visibleResumes.map((resume) => (
-          <ResumeCard key={resume.variant} resume={resume} />
+          <ResumeCard key={resume.variant} resume={resume} ctaLocation={preview ? "home" : "resume_page"} />
         ))}
       </div>
     </section>

@@ -6,6 +6,7 @@ import {
 import Link from "next/link";
 import { FaGithub } from "react-icons/fa6";
 
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { DeferredContactForm } from "@/components/main/deferred-contact-form";
 import { DeferredEarthCanvas } from "@/components/main/deferred-earth-canvas";
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
@@ -41,8 +42,9 @@ export const Contact = ({ profile = fallbackPortfolioContent.profile }: { profil
             <EnvelopeIcon className="h-4 w-4" />
             {profile.email}
           </Link>
-          <Link
+          <TrackedLink
             href={profile.linkedIn}
+            analyticsEvent={{ event: "profile_link_click", platform: "linkedin", link_location: "contact" }}
             aria-label="LinkedIn profile"
             target="_blank"
             rel="noreferrer noopener"
@@ -50,9 +52,10 @@ export const Contact = ({ profile = fallbackPortfolioContent.profile }: { profil
           >
             <LinkIcon className="h-4 w-4" />
             LinkedIn
-          </Link>
-          <Link
+          </TrackedLink>
+          <TrackedLink
             href={profile.github}
+            analyticsEvent={{ event: "profile_link_click", platform: "github", link_location: "contact" }}
             aria-label="GitHub profile"
             target="_blank"
             rel="noreferrer noopener"
@@ -60,7 +63,7 @@ export const Contact = ({ profile = fallbackPortfolioContent.profile }: { profil
           >
             <FaGithub className="h-4 w-4" />
             GitHub
-          </Link>
+          </TrackedLink>
           <Link
             href="/resume"
             aria-label="View CV"

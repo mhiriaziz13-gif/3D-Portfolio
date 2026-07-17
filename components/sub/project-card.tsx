@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { ProjectArtwork } from "@/components/sub/project-artwork";
 
 type ProjectCardProps = {
@@ -8,6 +7,8 @@ type ProjectCardProps = {
   description: string;
   tags: string[];
   href?: string;
+  projectSlug?: string;
+  cardLocation: "home" | "projects_page" | "related_projects";
 };
 
 export const ProjectCard = ({
@@ -16,12 +17,20 @@ export const ProjectCard = ({
   description,
   tags,
   href,
+  projectSlug,
+  cardLocation,
 }: ProjectCardProps) => {
   return (
     <article className="group relative overflow-hidden rounded-lg border border-[#2A0E61] bg-[#08021c]/70 shadow-lg shadow-[#2A0E61]/20 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-cyan-300/60 hover:shadow-xl hover:shadow-cyan-500/10 focus-within:border-cyan-300 focus-within:outline focus-within:outline-2 focus-within:outline-offset-4 focus-within:outline-cyan-300">
       {href && (
-        <Link
+        <TrackedLink
           href={href}
+          analyticsEvent={{
+            event: "project_card_click",
+            project_slug: projectSlug || href.split("/").pop() || "unknown",
+            project_title: title,
+            card_location: cardLocation,
+          }}
           aria-label={`View project: ${title}`}
           className="absolute inset-0 z-10 rounded-lg focus:outline-none"
         />

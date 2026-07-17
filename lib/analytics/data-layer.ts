@@ -1,13 +1,34 @@
 export type AnalyticsEvent =
   | {
+      event: "project_card_click";
+      project_slug: string;
+      project_title: string;
+      card_location: "home" | "projects_page" | "related_projects";
+    }
+  | {
       event: "cv_download";
       cv_variant: "english" | "french" | "canada" | "ats";
       file_format: "pdf" | "docx";
-      cta_location: "hero" | "navbar" | "resume_page";
+      cta_location: "home" | "resume_page";
+    }
+  | {
+      event: "contact_submit_success";
+    }
+  | {
+      event: "contact_fallback_mailto";
+    }
+  | {
+      event: "contact_submit_error";
+      error_type: "api_error" | "network_error";
+    }
+  | {
+      event: "profile_link_click";
+      platform: "linkedin" | "github";
+      link_location: "navbar" | "footer" | "contact" | "about";
     }
   | {
       event: "contact_cta_click";
-      cta_location: "hero" | "footer" | "contact_page" | "project_page";
+      cta_location: "hero" | "project_page" | "resume_page" | "footer";
     };
 
 declare global {

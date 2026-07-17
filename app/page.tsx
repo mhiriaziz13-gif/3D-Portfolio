@@ -22,7 +22,7 @@ export default async function Home() {
       <Hero profile={content.profile} hero={content.hero} />
       <About profile={content.profile} about={content.about} />
       <Skills skillCategories={content.skillCategories} />
-      <Projects projects={content.projects} />
+      <Projects projects={content.projects} cardLocation="home" />
       <Experience experience={content.experience} />
       <EducationSection preview education={content.education} />
       <CertificationsSection preview certifications={content.certifications} />
