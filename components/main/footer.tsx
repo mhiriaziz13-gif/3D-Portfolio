@@ -25,7 +25,10 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
           </span>
           <TrackedLink
             href={`mailto:${profile.email}`}
-            analyticsEvent={{ event: "contact_cta_click", cta_location: "footer" }}
+            analyticsEvent={[
+              { event: "email_contact_click", link_location: "footer" },
+              { event: "contact_cta_click", cta_location: "footer" },
+            ]}
             className="inline-flex items-center gap-2 transition hover:text-cyan-100"
           >
             <EnvelopeIcon className="h-4 w-4 text-purple-200" />

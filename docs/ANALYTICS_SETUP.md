@@ -13,4 +13,22 @@ GA4 must be configured inside GTM. Do not add a direct `gtag.js` script to the a
 
 All integrations are gated by the visitor's analytics consent. Custom events must use the typed `pushAnalyticsEvent()` helper from `lib/analytics/data-layer.ts`; never send visitor-entered text to the Data Layer.
 
+## GTM event mapping
+
+Configure the published GTM container with Custom Event triggers and GA4 Event tags using this mapping:
+
+| Data Layer event | GA4 event |
+| --- | --- |
+| `virtual_page_view` | `page_view` |
+| `project_card_click` | `select_content` |
+| `cv_download` | `cv_download` |
+| `contact_submit_success` | `generate_lead` |
+| `contact_fallback_mailto` | `contact_fallback_mailto` |
+| `contact_submit_error` | `contact_submit_error` |
+| `profile_link_click` | `profile_link_click` |
+| `email_contact_click` | `email_contact_click` |
+| `contact_cta_click` | `contact_cta_click` |
+
+Disable the Google tag's automatic page view (`send_page_view: false`) so that `virtual_page_view` is the single source of GA4 `page_view` events. Forward only the controlled parameters declared by the `AnalyticsEvent` type. Do not configure Clarity in GTM.
+
 After deployment, enable Web Analytics and Speed Insights in the Vercel project dashboard. The Content Security Policy permits Google Tag Manager, Google Analytics and Vercel vitals endpoints.

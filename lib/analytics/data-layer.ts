@@ -1,5 +1,9 @@
 export type AnalyticsEvent =
   | {
+      event: "virtual_page_view";
+      page_path: string;
+    }
+  | {
       event: "project_card_click";
       project_slug: string;
       project_title: string;
@@ -25,6 +29,10 @@ export type AnalyticsEvent =
       event: "profile_link_click";
       platform: "linkedin" | "github";
       link_location: "navbar" | "footer" | "contact" | "about";
+    }
+  | {
+      event: "email_contact_click";
+      link_location: "footer" | "contact";
     }
   | {
       event: "contact_cta_click";

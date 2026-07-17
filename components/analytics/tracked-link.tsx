@@ -9,7 +9,7 @@ import {
 } from "@/lib/analytics/data-layer";
 
 type TrackedLinkProps = ComponentProps<typeof Link> & {
-  analyticsEvent: AnalyticsEvent;
+  analyticsEvent: AnalyticsEvent | AnalyticsEvent[];
 };
 
 export const TrackedLink = ({
@@ -18,7 +18,10 @@ export const TrackedLink = ({
   ...linkProps
 }: TrackedLinkProps) => {
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    pushAnalyticsEvent(analyticsEvent);
+    const analyticsEvents = Array.isArray(analyticsEvent)
+      ? analyticsEvent
+      : [analyticsEvent];
+    analyticsEvents.forEach(pushAnalyticsEvent);
     onClick?.(event);
   };
 

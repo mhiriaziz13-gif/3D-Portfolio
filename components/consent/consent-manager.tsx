@@ -14,6 +14,7 @@ import { GoogleTagManager } from "@/components/analytics/google-tag-manager";
 import { DeferredAnalytics } from "@/components/main/deferred-analytics";
 import { MicrosoftClarity } from "@/components/main/microsoft-clarity";
 import {
+  pushAnalyticsEvent,
   setAnalyticsCollectionEnabled,
   updateGoogleConsent,
 } from "@/lib/analytics/data-layer";
@@ -83,9 +84,12 @@ export const ConsentManager = ({
       isCollectionRoute && preference === "accepted";
     setAnalyticsCollectionEnabled(hasAnalyticsConsent);
     updateGoogleConsent(hasAnalyticsConsent ? "granted" : "denied");
+    if (hasAnalyticsConsent) {
+      pushAnalyticsEvent({ event: "virtual_page_view", page_path: pathname });
+    }
 
     return () => setAnalyticsCollectionEnabled(false);
-  }, [isCollectionRoute, preference]);
+  }, [isCollectionRoute, pathname, preference]);
 
   const savePreference = (nextPreference: ConsentPreference) => {
     window.localStorage.setItem(CONSENT_STORAGE_KEY, nextPreference);

@@ -35,13 +35,14 @@ export const Contact = ({ profile = fallbackPortfolioContent.profile }: { profil
         <DeferredContactForm recipient={profile.email} />
 
         <div className="mt-6 flex flex-wrap gap-3 text-sm">
-          <Link
+          <TrackedLink
             href={`mailto:${profile.email}`}
+            analyticsEvent={{ event: "email_contact_click", link_location: "contact" }}
             className="button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 font-semibold"
           >
             <EnvelopeIcon className="h-4 w-4" />
             {profile.email}
-          </Link>
+          </TrackedLink>
           <TrackedLink
             href={profile.linkedIn}
             analyticsEvent={{ event: "profile_link_click", platform: "linkedin", link_location: "contact" }}
