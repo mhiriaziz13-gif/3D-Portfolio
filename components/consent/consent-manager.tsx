@@ -5,12 +5,12 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 import { usePathname } from "next/navigation";
 
-import { GoogleTagManager } from "@/components/analytics/google-tag-manager";
 import { DeferredAnalytics } from "@/components/main/deferred-analytics";
 import { MicrosoftClarity } from "@/components/main/microsoft-clarity";
 import {
@@ -20,20 +20,20 @@ import {
 } from "@/lib/analytics/data-layer";
 import { isPublicAnalyticsRoute } from "@/lib/analytics/routes";
 
-type ConsentPreference = "accepted" | "rejected";
+type AnalyticsConsent = "granted" | "denied";
 
 type ConsentContextValue = {
   isAvailable: boolean;
   openPreferences: () => void;
 };
 
-const CONSENT_STORAGE_KEY = "analytics-consent";
+const CONSENT_STORAGE_KEY = "aam_analytics_consent";
 const CONSENT_CHANGE_EVENT = "analytics-consent-change";
 const ConsentContext = createContext<ConsentContextValue | null>(null);
 
-const getStoredPreference = (): ConsentPreference | null => {
+const getStoredPreference = (): AnalyticsConsent | null => {
   const storedPreference = window.localStorage.getItem(CONSENT_STORAGE_KEY);
-  return storedPreference === "accepted" || storedPreference === "rejected"
+  return storedPreference === "granted" || storedPreference === "denied"
     ? storedPreference
     : null;
 };
@@ -55,12 +55,10 @@ const subscribeToPreference = (onStoreChange: () => void) => {
 export const ConsentManager = ({
   children,
   analyticsEnabled,
-  gtmContainerId,
   clarityProjectId,
 }: {
   children: React.ReactNode;
   analyticsEnabled: boolean;
-  gtmContainerId?: string;
   clarityProjectId?: string;
 }) => {
   const pathname = usePathname();
@@ -78,23 +76,50 @@ export const ConsentManager = ({
   );
   const [isManaging, setIsManaging] = useState(false);
   const [statisticsEnabled, setStatisticsEnabled] = useState(false);
+  const lastPageViewPath = useRef<string | null>(null);
 
   useEffect(() => {
     const hasAnalyticsConsent =
-      isCollectionRoute && preference === "accepted";
+      isCollectionRoute && preference === "granted";
     setAnalyticsCollectionEnabled(hasAnalyticsConsent);
     updateGoogleConsent(hasAnalyticsConsent ? "granted" : "denied");
-    if (hasAnalyticsConsent) {
-      pushAnalyticsEvent({ event: "virtual_page_view", page_path: pathname });
+    if (hasAnalyticsConsent && lastPageViewPath.current !== pathname) {
+      pushAnalyticsEvent({
+        event: "virtual_page_view",
+        page_path: window.location.pathname + window.location.search,
+        page_location: window.location.href,
+        page_title: document.title,
+      });
+      lastPageViewPath.current = pathname;
     }
 
     return () => setAnalyticsCollectionEnabled(false);
   }, [isCollectionRoute, pathname, preference]);
 
-  const savePreference = (nextPreference: ConsentPreference) => {
+  const savePreference = (nextPreference: AnalyticsConsent) => {
+    const wasGranted = preference === "granted";
     window.localStorage.setItem(CONSENT_STORAGE_KEY, nextPreference);
+    setAnalyticsCollectionEnabled(
+      isCollectionRoute && nextPreference === "granted",
+    );
+    updateGoogleConsent(nextPreference);
+    window.dataLayer?.push({
+      event: "analytics_consent_updated",
+      analytics_consent: nextPreference,
+    });
+
+    if (!wasGranted && nextPreference === "granted") {
+      window.dataLayer?.push({
+        event: "virtual_page_view",
+        page_path: window.location.pathname + window.location.search,
+        page_location: window.location.href,
+        page_title: document.title,
+      });
+      lastPageViewPath.current = pathname;
+    }
+
     window.dispatchEvent(new Event(CONSENT_CHANGE_EVENT));
-    setStatisticsEnabled(nextPreference === "accepted");
+    setStatisticsEnabled(nextPreference === "granted");
     setIsManaging(false);
   };
 
@@ -103,7 +128,7 @@ export const ConsentManager = ({
       isAvailable: isCollectionRoute,
       openPreferences: () => {
         if (!isCollectionRoute) return;
-        setStatisticsEnabled(preference === "accepted");
+        setStatisticsEnabled(preference === "granted");
         setIsManaging(true);
       },
     }),
@@ -117,11 +142,7 @@ export const ConsentManager = ({
     <ConsentContext.Provider value={contextValue}>
       {children}
 
-      {isCollectionRoute && gtmContainerId && (
-        <GoogleTagManager containerId={gtmContainerId} />
-      )}
-
-      {isCollectionRoute && preference === "accepted" && (
+      {isCollectionRoute && preference === "granted" && (
         <>
           {clarityProjectId && <MicrosoftClarity projectId={clarityProjectId} />}
           <DeferredAnalytics />
@@ -140,14 +161,14 @@ export const ConsentManager = ({
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
               type="button"
-              onClick={() => savePreference("accepted")}
+              onClick={() => savePreference("granted")}
               className="rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-semibold text-[#030014] transition hover:bg-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
             >
               Accepter les statistiques
             </button>
             <button
               type="button"
-              onClick={() => savePreference("rejected")}
+              onClick={() => savePreference("denied")}
               className="rounded-lg border border-cyan-200/60 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
             >
               Refuser les statistiques
@@ -203,7 +224,7 @@ export const ConsentManager = ({
               )}
               <button
                 type="button"
-                onClick={() => savePreference(statisticsEnabled ? "accepted" : "rejected")}
+                onClick={() => savePreference(statisticsEnabled ? "granted" : "denied")}
                 className="rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-semibold text-[#030014] transition hover:bg-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
               >
                 Save preferences

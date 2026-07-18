@@ -2,6 +2,8 @@ export type AnalyticsEvent =
   | {
       event: "virtual_page_view";
       page_path: string;
+      page_location?: string;
+      page_title?: string;
     }
   | {
       event: "project_card_click";
@@ -39,15 +41,7 @@ export type AnalyticsEvent =
       cta_location: "hero" | "project_page" | "resume_page" | "footer";
     };
 
-declare global {
-  interface Window {
-    dataLayer: unknown[];
-    gtag?: (...args: unknown[]) => void;
-    analyticsCollectionEnabled?: boolean;
-  }
-}
-
-const CONSENT_STORAGE_KEY = "analytics-consent";
+const CONSENT_STORAGE_KEY = "aam_analytics_consent";
 
 export const setAnalyticsCollectionEnabled = (enabled: boolean) => {
   window.analyticsCollectionEnabled = enabled;
@@ -74,7 +68,7 @@ export const pushAnalyticsEvent = (analyticsEvent: AnalyticsEvent) => {
   if (
     typeof window === "undefined" ||
     !window.analyticsCollectionEnabled ||
-    window.localStorage.getItem(CONSENT_STORAGE_KEY) !== "accepted"
+    window.localStorage.getItem(CONSENT_STORAGE_KEY) !== "granted"
   ) {
     return false;
   }
