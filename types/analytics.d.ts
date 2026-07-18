@@ -2,10 +2,17 @@ export {};
 
 type ConsentState = "granted" | "denied";
 
+type ClarityFunction = {
+  (...args: unknown[]): void;
+  q?: unknown[][];
+};
+
 declare global {
   interface Window {
     dataLayer: Array<Record<string, unknown> | IArguments>;
-    analyticsCollectionEnabled?: boolean;
+    googleTagManagerLoaded?: boolean;
+    microsoftClarityInitialized?: boolean;
+    clarity?: ClarityFunction;
     gtag?: (
       command: "consent",
       action: "default" | "update",

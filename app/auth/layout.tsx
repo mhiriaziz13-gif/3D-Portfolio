@@ -6,5 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function AuthLayout({ children }: PropsWithChildren) {
-  return children;
+  return <div data-clarity-mask="true">{children}</div>;
 }

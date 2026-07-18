@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "security:verify": "node scripts/security/verify-production-security.mjs",
     "seo:audit": "node scripts/seo/audit.mjs",
-    "content:audit": "node scripts/content/audit.mjs"
+    "content:audit": "node scripts/content/audit.mjs",
+    "analytics:verify": "node scripts/analytics/verify-analytics-consent.mjs"
   },
   "author": {
     "name": "Ahmed Aziz Mhiri",

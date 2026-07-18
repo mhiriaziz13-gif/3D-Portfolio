@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { TrackedLink } from "@/components/analytics/tracked-link";
-import type { AnalyticsEvent } from "@/lib/analytics/data-layer";
+import type { AnalyticsEvent } from "@/lib/analytics/events";
 
 type PageIntroProps = {
   eyebrow: string;

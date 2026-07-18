@@ -6,7 +6,7 @@ import type { ComponentProps, MouseEvent } from "react";
 import {
   pushAnalyticsEvent,
   type AnalyticsEvent,
-} from "@/lib/analytics/data-layer";
+} from "@/lib/analytics/events";
 
 type TrackedLinkProps = ComponentProps<typeof Link> & {
   analyticsEvent: AnalyticsEvent | AnalyticsEvent[];

@@ -8,7 +8,7 @@ type ProjectCardProps = {
   tags: string[];
   href?: string;
   projectSlug?: string;
-  cardLocation: "home" | "projects_page" | "related_projects";
+  cardLocation: "homepage" | "projects_page" | "related_projects";
 };
 
 export const ProjectCard = ({

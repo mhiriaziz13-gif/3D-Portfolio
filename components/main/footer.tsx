@@ -27,7 +27,7 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
             href={`mailto:${profile.email}`}
             analyticsEvent={[
               { event: "email_contact_click", link_location: "footer" },
-              { event: "contact_cta_click", cta_location: "footer" },
+              { event: "contact_cta_click", cta_location: "footer", cta_label: "footer_email_contact" },
             ]}
             className="inline-flex items-center gap-2 transition hover:text-cyan-100"
           >
@@ -66,6 +66,9 @@ export const Footer = ({ profile = fallbackPortfolioContent.profile }: { profile
         {[["About","/about"],["Expertise","/expertise"],["Projects","/projects"],["Experience","/experience"],["Education","/education"],["Certifications","/certifications"],["Resume","/resume"],["Contact","/contact"]].map(([label, href]) => <Link key={href} href={href} className="hover:text-cyan-100">{label}</Link>)}
         <CookiePreferencesButton />
       </nav>
+      <p className="mx-auto mt-5 max-w-7xl text-xs leading-6 text-gray-500">
+        With your choice, Google Tag Manager manages GA4 aggregate traffic and event measurement, while Microsoft Clarity supports UX heatmaps and session behavior. Advertising personalization stays disabled, sensitive forms are masked, and contact-form content is never sent to analytics. Use Analytics preferences above to change your choice.
+      </p>
     </footer>
   );
 };

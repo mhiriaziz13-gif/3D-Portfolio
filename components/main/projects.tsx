@@ -2,7 +2,7 @@ import { ProjectCard } from "@/components/sub/project-card";
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
 import type { ProjectContent } from "@/lib/cms-types";
 
-export const Projects = ({ projects = fallbackPortfolioContent.projects, cardLocation }: { projects?: ProjectContent[]; cardLocation: "home" | "projects_page" }) => {
+export const Projects = ({ projects = fallbackPortfolioContent.projects, cardLocation }: { projects?: ProjectContent[]; cardLocation: "homepage" | "projects_page" }) => {
   return (
     <section
       id="projects"

@@ -3,7 +3,7 @@
 import { EnvelopeIcon } from "@heroicons/react/24/solid";
 import { type FormEvent, useState } from "react";
 
-import { pushAnalyticsEvent } from "@/lib/analytics/data-layer";
+import { pushAnalyticsEvent } from "@/lib/analytics/events";
 
 type ContactFormState = {
   name: string;
@@ -45,14 +45,14 @@ export const ContactForm = ({ recipient }: { recipient: string }) => {
       const data = await response.json().catch(() => ({}));
 
       if (response.ok && data.ok && !data.fallback) {
-        pushAnalyticsEvent({ event: "contact_submit_success" });
+        pushAnalyticsEvent({ event: "contact_submit_success", form_name: "portfolio_contact", contact_method: "api", cta_location: "contact_page" });
         setForm(initialForm);
         setStatus(data.message ?? "Message sent. Thank you.");
         return;
       }
 
       if (data.fallback) {
-        pushAnalyticsEvent({ event: "contact_fallback_mailto" });
+        pushAnalyticsEvent({ event: "contact_fallback_mailto", form_name: "portfolio_contact", contact_method: "mailto_fallback", cta_location: "contact_page" });
         window.location.href = buildMailto(form, recipient);
         setStatus("Your email app should open with a drafted message.");
         return;
@@ -60,15 +60,17 @@ export const ContactForm = ({ recipient }: { recipient: string }) => {
 
       pushAnalyticsEvent({
         event: "contact_submit_error",
+        form_name: "portfolio_contact",
         error_type: "api_error",
       });
       setStatus(data.error ?? "Message could not be sent right now.");
     } catch {
       pushAnalyticsEvent({
         event: "contact_submit_error",
+        form_name: "portfolio_contact",
         error_type: "network_error",
       });
-      pushAnalyticsEvent({ event: "contact_fallback_mailto" });
+      pushAnalyticsEvent({ event: "contact_fallback_mailto", form_name: "portfolio_contact", contact_method: "mailto_fallback", cta_location: "contact_page" });
       window.location.href = buildMailto(form, recipient);
       setStatus("Your email app should open with a drafted message.");
     } finally {
@@ -78,6 +80,7 @@ export const ContactForm = ({ recipient }: { recipient: string }) => {
 
   return (
     <form
+      data-clarity-mask="true"
       action="/api/contact"
       method="post"
       onSubmit={handleSubmit}

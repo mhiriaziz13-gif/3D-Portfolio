@@ -7,11 +7,11 @@ Analytics run only when `VERCEL_ENV === "production"` and the current route is p
 - Google Analytics and custom events via Google Tag Manager
 - Microsoft Clarity via `@microsoft/clarity`
 
-Set `NEXT_PUBLIC_GTM_CONTAINER_ID` and `NEXT_PUBLIC_CLARITY_PROJECT_ID` in the Vercel Production environment. There are no hardcoded fallback IDs: a missing variable disables its integration. Preview and Development deployments do not collect analytics even when variables exist.
+Set `NEXT_PUBLIC_GTM_ID` and `NEXT_PUBLIC_CLARITY_PROJECT_ID` in the Vercel Production environment. There are no hardcoded fallback IDs: a missing variable disables its integration. Preview, Development, localhost and cloned/unknown hostnames do not collect analytics even when variables exist.
 
 GA4 must be configured inside GTM. Do not add a direct `gtag.js` script to the application. Clarity remains managed by its NPM package and must not be duplicated in GTM.
 
-All integrations are gated by the visitor's analytics consent. Custom events must use the typed `pushAnalyticsEvent()` helper from `lib/analytics/data-layer.ts`; never send visitor-entered text to the Data Layer.
+Google Analytics and Clarity are gated by the visitor's analytics consent. Vercel Web Analytics and Speed Insights remain separate, production-public-route telemetry. Custom events must use the typed `pushAnalyticsEvent()` helper from `lib/analytics/events.ts`; never send visitor-entered text to the Data Layer.
 
 ## GTM event mapping
 
@@ -32,3 +32,5 @@ Configure the published GTM container with Custom Event triggers and GA4 Event t
 Disable the Google tag's automatic page view (`send_page_view: false`) so that `virtual_page_view` is the single source of GA4 `page_view` events. Forward only the controlled parameters declared by the `AnalyticsEvent` type. Do not configure Clarity in GTM.
 
 After deployment, enable Web Analytics and Speed Insights in the Vercel project dashboard. The Content Security Policy permits Google Tag Manager, Google Analytics and Vercel vitals endpoints.
+
+Consent is stored under `aam_analytics_consent_v1` as versioned JSON containing only the analytics choice and update timestamp. The consent bootstrap runs before the interactive GTM loader. See `docs/analytics/gtm-production-configuration.md` for the external container contract and `docs/analytics/consent-manual-test-plan.md` for browser acceptance.

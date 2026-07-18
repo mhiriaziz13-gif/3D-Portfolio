@@ -10,13 +10,13 @@ type ResumeSectionProps = {
   resumes?: ResumeContent[];
 };
 
-type CvVariant = "english" | "french" | "canada" | "ats";
+type CvVariant = "english" | "french" | "canadian" | "ats";
 
 const resolveCvVariant = (resume: ResumeContent): CvVariant | null => {
   const value = `${resume.variant} ${resume.title}`.toLowerCase();
   if (value.includes("english")) return "english";
   if (value.includes("french") || value.includes("francais")) return "french";
-  if (value.includes("canada")) return "canada";
+  if (value.includes("canada")) return "canadian";
   if (value.includes("ats")) return "ats";
   return null;
 };
@@ -34,7 +34,7 @@ const DownloadAction = ({
   available: boolean;
   variant: CvVariant | null;
   fileFormat: "pdf" | "docx";
-  ctaLocation: "home" | "resume_page";
+  ctaLocation: "homepage" | "resume_page";
 }) => {
   const className =
     "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-300";
@@ -83,7 +83,7 @@ const DownloadAction = ({
   );
 };
 
-const ResumeCard = ({ resume, ctaLocation }: { resume: ResumeContent; ctaLocation: "home" | "resume_page" }) => (
+const ResumeCard = ({ resume, ctaLocation }: { resume: ResumeContent; ctaLocation: "homepage" | "resume_page" }) => (
   <article className="rounded-lg border border-white/10 bg-[#08021c]/75 p-5 shadow-lg shadow-[#2A0E61]/20 backdrop-blur-md">
     <div className="flex items-start justify-between gap-4">
       <h3 className="text-lg font-semibold text-white">{resume.title}</h3>
@@ -159,7 +159,7 @@ export const ResumeSection = ({
         }
       >
         {visibleResumes.map((resume) => (
-          <ResumeCard key={resume.variant} resume={resume} ctaLocation={preview ? "home" : "resume_page"} />
+          <ResumeCard key={resume.variant} resume={resume} ctaLocation={preview ? "homepage" : "resume_page"} />
         ))}
       </div>
     </section>

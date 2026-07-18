@@ -51,7 +51,7 @@ export const HeroContent = ({ profile = fallbackPortfolioContent.profile, hero =
         <div className="flex flex-col gap-3">
           <TrackedLink
             href={hero.primaryCtaHref}
-            analyticsEvent={{ event: "contact_cta_click", cta_location: "hero" }}
+            analyticsEvent={{ event: "contact_cta_click", cta_location: "hero", cta_label: "hero_primary_contact" }}
             prefetch={false}
             className="button-primary inline-flex w-full items-center justify-center gap-2 rounded-lg px-7 py-4 text-center text-base font-bold text-white sm:w-fit sm:self-center lg:self-start"
           >

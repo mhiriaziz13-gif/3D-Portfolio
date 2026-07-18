@@ -1,7 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { isProductionAnalyticsLocation, isPublicAnalyticsPath } from "@/lib/analytics/consent";
 
 const Analytics = dynamic(
   () => import("@vercel/analytics/next").then((module) => module.Analytics),
@@ -25,7 +28,8 @@ type WindowWithIdleCallback = Window & {
 
 const ANALYTICS_DEFER_MS = 12000;
 
-export const DeferredAnalytics = () => {
+export const DeferredAnalytics = ({ enabled }: { enabled: boolean }) => {
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -80,7 +84,12 @@ export const DeferredAnalytics = () => {
     };
   }, []);
 
-  if (!ready) return null;
+  if (
+    !enabled ||
+    !ready ||
+    !isPublicAnalyticsPath(pathname) ||
+    !isProductionAnalyticsLocation()
+  ) return null;
 
   return (
     <>
