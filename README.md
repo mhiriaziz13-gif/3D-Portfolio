@@ -1,6 +1,6 @@
 # Ahmed Aziz Mhiri — Data-Driven Marketing & Commercial Analytics
 
-[![Live Portfolio](https://img.shields.io/badge/Live%20Portfolio-ahmedaziz--portfolio.vercel.app-111827?style=for-the-badge&logo=vercel)](https://ahmedaziz-portfolio.vercel.app)
+[![Live Portfolio](https://img.shields.io/badge/Live%20Portfolio-Visit-000000?style=for-the-badge&logo=vercel)](https://ahmedaziz-portfolio.vercel.app/?utm_source=github&utm_medium=referral&utm_campaign=portfolio_growth_2026&utm_content=repository_badge)
 [![Next.js](https://img.shields.io/badge/Next.js-16.2.9-000000?style=for-the-badge&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-CMS%20%26%20Auth-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -14,7 +14,7 @@ The platform combines a high-impact public portfolio, a Supabase-backed CMS, sec
 
 ## Live links
 
-- **Portfolio:** [ahmedaziz-portfolio.vercel.app](https://ahmedaziz-portfolio.vercel.app)
+- **Portfolio:** [View the live portfolio](https://ahmedaziz-portfolio.vercel.app/?utm_source=github&utm_medium=referral&utm_campaign=portfolio_growth_2026&utm_content=repository_readme)
 - **LinkedIn:** [linkedin.com/in/ahmed-aziz-mhiri](https://linkedin.com/in/ahmed-aziz-mhiri)
 - **GitHub:** [github.com/mhiriaziz13-gif](https://github.com/mhiriaziz13-gif)
 - **Sitemap:** [sitemap.xml](https://ahmedaziz-portfolio.vercel.app/sitemap.xml)
