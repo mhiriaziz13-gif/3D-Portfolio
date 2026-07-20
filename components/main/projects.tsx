@@ -21,6 +21,8 @@ export const Projects = ({ projects = fallbackPortfolioContent.projects, cardLoc
             description={project.description}
             tags={project.tags}
             projectSlug={project.slug}
+            githubUrl={project.githubUrl}
+            linkedinUrl={project.linkedinUrl}
             cardLocation={cardLocation}
             href={project.slug ? `/projects/${project.slug}` : undefined}
           />

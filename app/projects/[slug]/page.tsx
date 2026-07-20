@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { TrackedLink } from "@/components/analytics/tracked-link";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
+import { ProjectSocialLinks } from "@/components/sub/project-social-links";
 import { verifiedCaseStudies } from "@/data/verified-case-studies";
 import { getPortfolioContent, getProjectBySlug } from "@/lib/cms";
 import { createPageMetadata } from "@/lib/seo/metadata";
@@ -50,6 +51,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           <p className="Welcome-text mb-4 text-sm">Project</p>
           <h1 className="text-4xl font-bold text-white sm:text-5xl">{project.title}</h1>
           <p className="mt-5 max-w-3xl text-base leading-8 text-gray-300">{project.description}</p>
+          <ProjectSocialLinks githubUrl={project.githubUrl} linkedinUrl={project.linkedinUrl} projectTitle={project.title} className="mt-5" />
         </div>
 
         <div className="relative aspect-[16/9] overflow-hidden rounded-lg border border-[#2A0E61] bg-[#08021c]/70 shadow-lg shadow-[#2A0E61]/20">

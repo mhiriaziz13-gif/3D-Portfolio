@@ -1,5 +1,6 @@
 import { TrackedLink } from "@/components/analytics/tracked-link";
 import { ProjectArtwork } from "@/components/sub/project-artwork";
+import { ProjectSocialLinks } from "@/components/sub/project-social-links";
 
 type ProjectCardProps = {
   src: string;
@@ -8,6 +9,8 @@ type ProjectCardProps = {
   tags: string[];
   href?: string;
   projectSlug?: string;
+  githubUrl?: string;
+  linkedinUrl?: string;
   cardLocation: "homepage" | "projects_page" | "related_projects";
 };
 
@@ -18,6 +21,8 @@ export const ProjectCard = ({
   tags,
   href,
   projectSlug,
+  githubUrl,
+  linkedinUrl,
   cardLocation,
 }: ProjectCardProps) => {
   return (
@@ -55,6 +60,7 @@ export const ProjectCard = ({
             </span>
           ))}
         </div>
+        <ProjectSocialLinks githubUrl={githubUrl} linkedinUrl={linkedinUrl} projectTitle={title} />
         {href && (
           <span className="button-secondary mt-2 inline-flex w-fit items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition group-hover:border-cyan-300/80 group-hover:text-white" aria-hidden="true">
             View details <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>

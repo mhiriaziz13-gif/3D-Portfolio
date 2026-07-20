@@ -139,6 +139,8 @@ create table if not exists public.projects (
   placeholder_image_url text,
   tags text[] default '{}',
   tools text[] default '{}',
+  github_url text,
+  linkedin_url text,
   featured boolean not null default false,
   published boolean not null default true,
   sort_order integer not null default 0,

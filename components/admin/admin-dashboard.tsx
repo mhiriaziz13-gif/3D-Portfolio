@@ -162,6 +162,8 @@ const sections: Section[] = [
       },
       { key: "tags", label: "Tags", kind: "list" },
       { key: "tools", label: "Tools", kind: "list" },
+      { key: "github_url", label: "GitHub URL", kind: "external-url" },
+      { key: "linkedin_url", label: "LinkedIn URL", kind: "external-url" },
       { key: "sort_order", label: "Sort order", kind: "number" },
       { key: "featured", label: "Featured", kind: "checkbox" },
       { key: "published", label: "Published", kind: "checkbox" },

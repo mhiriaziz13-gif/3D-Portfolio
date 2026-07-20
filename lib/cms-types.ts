@@ -63,6 +63,8 @@ export type ProjectContent = StaticProject & {
   slug: string;
   type?: string;
   tools?: string[];
+  githubUrl?: string;
+  linkedinUrl?: string;
   featured?: boolean;
   sortOrder?: number;
   sections?: ProjectSectionContent[];

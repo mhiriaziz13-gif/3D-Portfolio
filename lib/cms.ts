@@ -238,6 +238,8 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
         tags: asStringArray(row.tags),
         tools: asStringArray(row.tools),
         type: String(row.type ?? ""),
+        githubUrl: String(row.github_url ?? ""),
+        linkedinUrl: String(row.linkedin_url ?? ""),
         featured: Boolean(row.featured),
         sortOrder: Number(row.sort_order ?? index),
         sections,

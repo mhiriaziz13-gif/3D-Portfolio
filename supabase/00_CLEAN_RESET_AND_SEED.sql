@@ -131,6 +131,8 @@ create table public.projects (
   placeholder_image_url text,
   tags text[] not null default '{}',
   tools text[] not null default '{}',
+  github_url text,
+  linkedin_url text,
   featured boolean not null default false,
   published boolean not null default true,
   sort_order integer not null default 0,
