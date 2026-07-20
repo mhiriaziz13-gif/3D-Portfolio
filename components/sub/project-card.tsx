@@ -41,6 +41,13 @@ export const ProjectCard = ({
         />
       )}
 
+      <ProjectSocialLinks
+        githubUrl={githubUrl}
+        linkedinUrl={linkedinUrl}
+        projectTitle={title}
+        className="absolute right-4 top-4 rounded-lg border border-white/15 bg-[#08021c]/90 p-2 shadow-lg backdrop-blur-md"
+      />
+
       <div className="relative aspect-[16/9] overflow-hidden border-b border-white/10 bg-[#030014]">
         <ProjectArtwork src={src} title={title} />
       </div>
@@ -60,7 +67,6 @@ export const ProjectCard = ({
             </span>
           ))}
         </div>
-        <ProjectSocialLinks githubUrl={githubUrl} linkedinUrl={linkedinUrl} projectTitle={title} />
         {href && (
           <span className="button-secondary mt-2 inline-flex w-fit items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition group-hover:border-cyan-300/80 group-hover:text-white" aria-hidden="true">
             View details <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>

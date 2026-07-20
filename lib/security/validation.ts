@@ -115,6 +115,10 @@ const published = z.boolean().optional().default(true);
 const id = z.string().uuid().optional();
 const assetLink = assetUrlSchema.optional().default("");
 const externalLink = externalUrlSchema.optional().default("");
+const nullableExternalLink = z.preprocess(
+  (value) => value == null ? "" : value,
+  externalLink,
+);
 const socialLink = z.string().trim().max(2048).refine((value) => {
   if (isHttpsUrl(value)) return true;
   return value.startsWith("mailto:") && emailSchema.safeParse(value.slice(7)).success;
@@ -142,7 +146,7 @@ const cmsRowSchemas: Record<EditableCmsTable, z.ZodType<Record<string, unknown>>
   hero: z.object({ ...base, eyebrow: optionalText(), title: optionalText(), subtitle: optionalText(), tagline: optionalText(), dynamic_titles: stringList, primary_cta_label: optionalText(), primary_cta_href: siteLink, secondary_cta_label: optionalText(), secondary_cta_href: siteLink, published }),
   about: z.object({ ...base, title: optionalText(), body: optionalText(10000), highlights: stringList, avatar_url: assetLink, published }),
   skills: z.object({ ...base, name: requiredText(), category: requiredText(), icon_key: optionalText(), description: optionalText(2000), sort_order: sortOrder, published }),
-  projects: z.object({ ...base, slug: requiredText(200).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use a lowercase URL slug."), title: requiredText(), type: optionalText(), summary: optionalText(5000), description: optionalText(20000), cover_image_url: assetLink, tags: stringList, tools: stringList, github_url: externalLink, linkedin_url: externalLink, featured: z.boolean().optional().default(false), published, sort_order: sortOrder }),
+  projects: z.object({ ...base, slug: requiredText(200).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use a lowercase URL slug."), title: requiredText(), type: optionalText(), summary: optionalText(5000), description: optionalText(20000), cover_image_url: assetLink, tags: stringList, tools: stringList, github_url: nullableExternalLink, linkedin_url: nullableExternalLink, featured: z.boolean().optional().default(false), published, sort_order: sortOrder }),
   project_sections: z.object({ ...base, project_id: z.string().uuid(), title: requiredText(), body: optionalText(20000), bullets: stringList, sort_order: sortOrder }),
   experience: z.object({ ...base, company: requiredText(), role: requiredText(), location: optionalText(), start_date: optionalText(), end_date: optionalText(), date_label: optionalText(), logo_url: assetLink, logo_alt: optionalText(), points: stringList, tools: stringList, sort_order: sortOrder, published }),
   education: z.object({ ...base, institution: requiredText(), degree: requiredText(), start_date: optionalText(), end_date: optionalText(), status: optionalText(), location: optionalText(), sort_order: sortOrder, published }),
