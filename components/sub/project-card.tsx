@@ -49,7 +49,7 @@ export const ProjectCard = ({
         githubUrl={githubUrl}
         linkedinUrl={linkedinUrl}
         projectTitle={title}
-        className="min-h-14 justify-center border-b border-white/10 bg-[#08021c]/90 px-4 py-3"
+        className="relative min-h-14 justify-center border-b border-white/10 bg-[#08021c]/90 px-4 py-3"
       />
 
       <div className="relative flex h-full flex-col gap-4 p-5">
