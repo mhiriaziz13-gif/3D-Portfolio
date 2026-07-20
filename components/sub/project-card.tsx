@@ -41,16 +41,16 @@ export const ProjectCard = ({
         />
       )}
 
+      <div className="relative aspect-[16/9] overflow-hidden border-b border-white/10 bg-[#030014]">
+        <ProjectArtwork src={src} title={title} />
+      </div>
+
       <ProjectSocialLinks
         githubUrl={githubUrl}
         linkedinUrl={linkedinUrl}
         projectTitle={title}
-        className="absolute right-4 top-4 rounded-lg border border-white/15 bg-[#08021c]/90 p-2 shadow-lg backdrop-blur-md"
+        className="min-h-14 justify-center border-b border-white/10 bg-[#08021c]/90 px-4 py-3"
       />
-
-      <div className="relative aspect-[16/9] overflow-hidden border-b border-white/10 bg-[#030014]">
-        <ProjectArtwork src={src} title={title} />
-      </div>
 
       <div className="relative flex h-full flex-col gap-4 p-5">
         <h3 className="text-xl font-semibold leading-tight text-white">
