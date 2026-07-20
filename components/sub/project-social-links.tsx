@@ -16,7 +16,7 @@ export const ProjectSocialLinks = ({
   if (!githubUrl && !linkedinUrl) return null;
 
   return (
-    <div className={`relative z-20 flex items-center gap-3 ${className}`}>
+    <div className={`z-20 flex items-center gap-3 ${className}`}>
       {githubUrl && (
         <a
           href={githubUrl}
