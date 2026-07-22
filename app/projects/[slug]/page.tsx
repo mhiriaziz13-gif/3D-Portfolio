@@ -9,7 +9,6 @@ import { TrackedLink } from "@/components/analytics/tracked-link";
 import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ProjectSocialLinks } from "@/components/sub/project-social-links";
-import { verifiedCaseStudies } from "@/data/verified-case-studies";
 import { getPortfolioContent, getProjectBySlug } from "@/lib/cms";
 import { createPageMetadata } from "@/lib/seo/metadata";
 import { projectSchema } from "@/lib/seo/schema";
@@ -34,9 +33,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     return notFound();
   }
   const content = await getPortfolioContent();
-  const caseStudy = verifiedCaseStudies[project.title];
-  const preferredRelated = caseStudy ? content.projects.find((item) => item.title === caseStudy.relatedTitle) : undefined;
-  const related = [preferredRelated, ...content.projects.filter((item) => item.slug !== project.slug && item.slug !== preferredRelated?.slug)].filter((item): item is NonNullable<typeof item> => Boolean(item)).slice(0, 3);
+  const related = content.projects.filter((item) => item.slug !== project.slug).slice(0, 3);
 
   return (
     <main className="min-h-screen px-6 py-28">
@@ -64,39 +61,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           ))}
         </div>
 
-        {caseStudy && (
-          <div className="grid gap-5">
-            <CaseStudySection title="Business and operational context" body={caseStudy.context} />
-            <CaseStudySection title="The problem" body={caseStudy.problem} />
-            <CaseStudySection title="Ahmed's contribution" body={caseStudy.contribution} />
-            <CaseStudySection title="Approach" bullets={caseStudy.approach} />
-            <CaseStudySection title="Workflow or architecture" body={caseStudy.workflow} />
-            <CaseStudySection title="Tools and technologies" bullets={caseStudy.tools} />
-            <CaseStudySection title="Deliverables" bullets={caseStudy.deliverables} />
-            <CaseStudySection title="Validation and safeguards" bullets={caseStudy.safeguards} />
-            <CaseStudySection title="Qualitative outcome" body={caseStudy.outcome} />
-            <CaseStudySection title="What I learned" body={caseStudy.lessons} />
-            <CaseStudySection title="Related expertise" bullets={caseStudy.expertise} />
-            <CaseStudySection title="Related experience" body={caseStudy.experience} />
-            <section className="rounded-lg border border-white/10 bg-[#100b24]/90 p-6">
-              <h2 className="text-2xl font-bold text-white">Frequently asked questions</h2>
-              <dl className="mt-5 space-y-5">{caseStudy.faq.map((item) => <div key={item.question}><dt className="font-semibold text-cyan-100">{item.question}</dt><dd className="mt-2 text-sm leading-7 text-gray-300">{item.answer}</dd></div>)}</dl>
-            </section>
-          </div>
-        )}
-
         {(project.sections ?? []).length > 0 && <div className="grid gap-5">
-          <h2 className="text-2xl font-bold text-white">Additional published project detail</h2>
           {(project.sections ?? []).map((section) => (
-            <section key={`${project.slug}-${section.title}`} className="rounded-lg border border-white/10 bg-[#100b24]/90 p-6 shadow-xl shadow-[#2A0E61]/20 backdrop-blur-md">
-              <h2 className="text-2xl font-bold text-white">{section.title}</h2>
-              {section.body && <p className="mt-4 text-sm leading-7 text-gray-300">{section.body}</p>}
-              {!!section.bullets.length && (
-                <ul className="mt-4 ml-4 list-disc space-y-2 text-sm leading-6 text-gray-300">
-                  {section.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}
-                </ul>
-              )}
-            </section>
+            <CaseStudySection key={section.id ?? `${project.slug}-${section.title}`} title={section.title} body={section.body} bullets={section.bullets} />
           ))}
         </div>}
         <section className="rounded-lg border border-white/10 bg-[#100b24]/90 p-6"><h2 className="text-2xl font-bold text-white">Related work</h2><div className="mt-4 flex flex-col gap-3">{related.map((item) => <Link key={item.slug} href={`/projects/${item.slug}`} className="action-link w-fit">View the {item.title} case study</Link>)}</div><div className="mt-7 flex flex-wrap gap-3"><Link href="/expertise" className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">Explore relevant expertise</Link><Link href="/experience" className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">Review professional experience</Link><TrackedLink href="/contact" analyticsEvent={{ event: "contact_cta_click", cta_location: "project_page", cta_label: "project_contact" }} className="button-primary rounded-lg px-4 py-2.5 text-sm font-semibold text-white">Discuss a related opportunity</TrackedLink></div></section>

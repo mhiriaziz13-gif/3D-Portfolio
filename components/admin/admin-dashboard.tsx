@@ -172,9 +172,9 @@ const sections: Section[] = [
   {
     table: "project_sections",
     label: "Project Sections",
-    description: "Structured blocks used on project detail pages.",
+    description: "Editable case-study blocks displayed on project detail pages. Their order, titles and content all come from the CMS.",
     fields: [
-      { key: "project_id", label: "Project ID", required: true },
+      { key: "project_id", label: "Project", kind: "select", required: true },
       { key: "title", label: "Title", required: true },
       { key: "body", label: "Body", kind: "textarea" },
       { key: "bullets", label: "Bullets", kind: "list" },
@@ -352,6 +352,19 @@ export const AdminDashboard = ({
   );
 
   const active = sections.find((section) => section.table === view);
+  const activeFields = useMemo(() => {
+    if (!active || active.table !== "project_sections") return active?.fields ?? [];
+
+    return active.fields.map((field) => field.key === "project_id"
+      ? {
+          ...field,
+          options: (records.projects ?? []).map((project) => ({
+            label: String(project.title ?? project.slug ?? "Untitled project"),
+            value: String(project.id ?? ""),
+          })).filter((option) => option.value),
+        }
+      : field);
+  }, [active, records.projects]);
   const stats = useMemo(() => ({
     skills: records.skills?.length ?? 0,
     projects: records.projects?.length ?? 0,
@@ -656,7 +669,7 @@ export const AdminDashboard = ({
               {editing !== null ? (
                 <form onSubmit={save} className="mt-6">
                   <div className="grid gap-4 md:grid-cols-2">
-                    {active.fields.map((field) => (
+                    {activeFields.map((field) => (
                       <CmsFieldInput
                         key={field.key}
                         field={field}
