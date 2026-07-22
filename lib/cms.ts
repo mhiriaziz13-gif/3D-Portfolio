@@ -367,7 +367,14 @@ const fallbackAdminContentSnapshot = (): AdminContentSnapshot => ({
     description: project.description, cover_image_url: project.image, tags: project.tags, tools: project.tools ?? project.tags,
     featured: project.featured ?? false, published: true, sort_order: project.sortOrder ?? index,
   })),
-  project_sections: [],
+  project_sections: fallbackPortfolioContent.projects.flatMap((project) =>
+    (project.sections ?? []).map((section) => ({
+      title: section.title,
+      body: section.body,
+      bullets: section.bullets,
+      sort_order: section.sortOrder,
+    })),
+  ),
   experience: fallbackPortfolioContent.experience.map((entry, index) => ({
     company: entry.company, role: entry.role, location: entry.location, date_label: entry.date,
     logo_url: entry.logo ?? "", logo_alt: entry.logoAlt ?? `${entry.company} logo`, points: entry.points,

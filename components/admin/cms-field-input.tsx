@@ -14,7 +14,7 @@ type SharedField = {
 
 type StandardField = SharedField & {
   kind?: "text" | "external-url" | "email" | "textarea" | "list" | "number" | "checkbox" | "select";
-  options?: readonly string[];
+  options?: readonly (string | { label: string; value: string })[];
 };
 
 type AssetField = SharedField & {
@@ -82,7 +82,11 @@ export function CmsFieldInput({ field, value, request, onChange }: CmsFieldInput
           required={field.required}
         >
           <option value="">Choose an option</option>
-          {field.options?.map((option) => <option key={option} value={option}>{option}</option>)}
+          {field.options?.map((option) => {
+            const value = typeof option === "string" ? option : option.value;
+            const label = typeof option === "string" ? option : option.label;
+            return <option key={value} value={value}>{label}</option>;
+          })}
         </select>
       </label>
     );
