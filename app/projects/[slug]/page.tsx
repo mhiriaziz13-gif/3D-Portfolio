@@ -10,6 +10,7 @@ import { Breadcrumbs } from "@/components/seo/breadcrumbs";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ProjectSocialLinks } from "@/components/sub/project-social-links";
 import { getPortfolioContent, getProjectBySlug } from "@/lib/cms";
+import type { ProjectContent } from "@/lib/cms-types";
 import { createPageMetadata } from "@/lib/seo/metadata";
 import { projectSchema } from "@/lib/seo/schema";
 import { isHttpsUrl } from "@/lib/utils";
@@ -33,7 +34,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
     return notFound();
   }
   const content = await getPortfolioContent();
-  const related = content.projects.filter((item) => item.slug !== project.slug).slice(0, 3);
+  const related = getRelatedProjects(project, content.projects);
 
   return (
     <main className="min-h-screen px-6 py-28">
@@ -66,10 +67,34 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             <CaseStudySection key={section.id ?? `${project.slug}-${section.title}`} title={section.title} body={section.body} bullets={section.bullets} />
           ))}
         </div>}
-        <section className="rounded-lg border border-white/10 bg-[#100b24]/90 p-6"><h2 className="text-2xl font-bold text-white">Related work</h2><div className="mt-4 flex flex-col gap-3">{related.map((item) => <Link key={item.slug} href={`/projects/${item.slug}`} className="action-link w-fit">View the {item.title} case study</Link>)}</div><div className="mt-7 flex flex-wrap gap-3"><Link href="/expertise" className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">Explore relevant expertise</Link><Link href="/experience" className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">Review professional experience</Link><TrackedLink href="/contact" analyticsEvent={{ event: "contact_cta_click", cta_location: "project_page", cta_label: "project_contact" }} className="button-primary rounded-lg px-4 py-2.5 text-sm font-semibold text-white">Discuss a related opportunity</TrackedLink></div></section>
+        {related.length > 0 && (
+          <section className="rounded-lg border border-white/10 bg-[#100b24]/90 p-6">
+            <h2 className="text-2xl font-bold text-white">Related work</h2>
+            <div className="mt-4 flex flex-col gap-3">
+              {related.map((item) => <Link key={item.slug} href={`/projects/${item.slug}`} className="action-link w-fit">View the {item.title} case study</Link>)}
+            </div>
+            <div className="mt-7 flex flex-wrap gap-3"><Link href="/expertise" className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">Explore relevant expertise</Link><Link href="/experience" className="button-secondary rounded-lg px-4 py-2.5 text-sm font-semibold">Review professional experience</Link><TrackedLink href="/contact" analyticsEvent={{ event: "contact_cta_click", cta_location: "project_page", cta_label: "project_contact" }} className="button-primary rounded-lg px-4 py-2.5 text-sm font-semibold text-white">Discuss a related opportunity</TrackedLink></div>
+          </section>
+        )}
       </article>
     </main>
   );
+}
+
+function getRelatedProjects(current: ProjectContent, projects: ProjectContent[]) {
+  const currentTerms = new Set([...current.tags, ...(current.tools ?? [])].map((term) => term.toLowerCase()));
+
+  return projects
+    .filter((candidate) => candidate.slug !== current.slug)
+    .map((candidate) => {
+      const candidateTerms = [...candidate.tags, ...(candidate.tools ?? [])].map((term) => term.toLowerCase());
+      const sharedTerms = candidateTerms.filter((term) => currentTerms.has(term)).length;
+      const sameType = Boolean(current.type && candidate.type === current.type);
+      return { candidate, score: sharedTerms * 2 + Number(sameType) };
+    })
+    .sort((left, right) => right.score - left.score || (left.candidate.sortOrder ?? 0) - (right.candidate.sortOrder ?? 0))
+    .slice(0, 3)
+    .map(({ candidate }) => candidate);
 }
 
 function CaseStudySection({ title, body, bullets = [] }: { title: string; body?: string; bullets?: string[] }) {
