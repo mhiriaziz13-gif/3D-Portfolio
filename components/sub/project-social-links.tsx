@@ -1,4 +1,5 @@
 import { FaGithub, FaLinkedin } from "react-icons/fa";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 type ProjectSocialLinksProps = {
   githubUrl?: string;
@@ -18,8 +19,9 @@ export const ProjectSocialLinks = ({
   return (
     <div className={`z-20 flex items-center gap-3 ${className}`}>
       {githubUrl && (
-        <a
+        <TrackedLink
           href={githubUrl}
+          analyticsEvent={{ event: "project_repository_click", project_title: projectTitle, cta_location: className.includes("border-b") ? "project_card" : "project_page" }}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`View ${projectTitle} on GitHub`}
@@ -27,11 +29,12 @@ export const ProjectSocialLinks = ({
           className="text-2xl text-gray-300 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300"
         >
           <FaGithub aria-hidden="true" />
-        </a>
+        </TrackedLink>
       )}
       {linkedinUrl && (
-        <a
+        <TrackedLink
           href={linkedinUrl}
+          analyticsEvent={{ event: "project_cta_click", project_title: projectTitle, cta_location: className.includes("border-b") ? "project_card" : "project_page" }}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`View ${projectTitle} on LinkedIn`}
@@ -39,7 +42,7 @@ export const ProjectSocialLinks = ({
           className="text-2xl text-gray-300 transition hover:text-[#0A66C2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300"
         >
           <FaLinkedin aria-hidden="true" />
-        </a>
+        </TrackedLink>
       )}
     </div>
   );

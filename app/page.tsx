@@ -12,6 +12,7 @@ import { Skills } from "@/components/main/skills";
 import { getPortfolioContent } from "@/lib/cms";
 import { JsonLd } from "@/components/seo/json-ld";
 import { personSchema, websiteSchema } from "@/lib/seo/schema";
+import { CmsPageSections } from "@/components/main/cms-page-sections";
 
 export default async function Home() {
   const content = await getPortfolioContent();
@@ -19,15 +20,21 @@ export default async function Home() {
   return (
     <main className="h-full w-full">
       <JsonLd data={[websiteSchema(), personSchema(content.profile)]} />
-      <Hero profile={content.profile} hero={content.hero} />
-      <About profile={content.profile} about={content.about} />
-      <Skills skillCategories={content.skillCategories} />
-      <Projects projects={content.projects} cardLocation="homepage" />
-      <Experience experience={content.experience} />
-      <EducationSection preview education={content.education} />
-      <CertificationsSection preview certifications={content.certifications} />
-      <ResumeSection preview resumes={content.resumes} />
-      <Contact profile={content.profile} />
+      {content.pages.find((page) => page.pageKey === "home")?.sections.length ? (
+        <CmsPageSections content={content} pageKey="home" />
+      ) : (
+        <>
+          <Hero profile={content.profile} hero={content.hero} />
+          <About profile={content.profile} about={content.about} />
+          <Skills skillCategories={content.skillCategories} />
+          <Projects projects={content.projects.filter((project) => project.featured).slice(0, 3)} cardLocation="homepage" />
+          <Experience experience={content.experience} />
+          <EducationSection preview education={content.education} />
+          <CertificationsSection preview certifications={content.certifications} />
+          <ResumeSection preview resumes={content.resumes} />
+          <Contact profile={content.profile} />
+        </>
+      )}
     </main>
   );
 }

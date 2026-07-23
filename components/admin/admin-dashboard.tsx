@@ -150,6 +150,8 @@ const sections: Section[] = [
       { key: "title", label: "Title", required: true },
       { key: "slug", label: "Slug", required: true },
       { key: "type", label: "Type" },
+      { key: "status", label: "Status", kind: "select", options: ["draft", "preparation", "published", "archived"], required: true },
+      { key: "project_group", label: "Project group", kind: "select", options: ["Featured Projects", "Professional Projects", "Additional Projects", "Technical Foundations", "Preparation", "Archived"] },
       { key: "summary", label: "Summary", kind: "textarea" },
       { key: "description", label: "Description", kind: "textarea" },
       {
@@ -164,7 +166,13 @@ const sections: Section[] = [
       { key: "tools", label: "Tools", kind: "list" },
       { key: "github_url", label: "GitHub URL", kind: "external-url" },
       { key: "linkedin_url", label: "LinkedIn URL", kind: "external-url" },
+      { key: "demo_url", label: "Demo URL", kind: "external-url" },
+      { key: "seo_title", label: "SEO title" },
+      { key: "seo_description", label: "SEO description", kind: "textarea" },
+      { key: "open_graph_image", label: "Open Graph image", kind: "asset-image", bucket: "project-images", accept: imageAccept, allowedMimeTypes: imageMimeTypes },
       { key: "sort_order", label: "Sort order", kind: "number" },
+      { key: "projects_page_order", label: "Projects page order", kind: "number" },
+      { key: "home_featured_order", label: "Home featured order", kind: "number" },
       { key: "featured", label: "Featured", kind: "checkbox" },
       { key: "published", label: "Published", kind: "checkbox" },
     ],
@@ -179,6 +187,26 @@ const sections: Section[] = [
       { key: "body", label: "Body", kind: "textarea" },
       { key: "bullets", label: "Bullets", kind: "list" },
       { key: "sort_order", label: "Sort order", kind: "number" },
+      { key: "is_visible", label: "Visible", kind: "checkbox" },
+      { key: "is_archived", label: "Archived", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "project_section_items", label: "Project Section Items", description: "Ordered labels, metrics and supporting details inside case-study sections.",
+    fields: [
+      { key: "project_section_id", label: "Project section ID", required: true }, { key: "label", label: "Label" },
+      { key: "value", label: "Value" }, { key: "description", label: "Description", kind: "textarea" },
+      { key: "display_order", label: "Display order", kind: "number" }, { key: "is_visible", label: "Visible", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "project_media", label: "Project Media", description: "Screenshots and demonstrations attached to project pages.",
+    fields: [
+      { key: "project_id", label: "Project", kind: "select", required: true },
+      { key: "media_url", label: "Media", kind: "asset-image", bucket: "project-images", accept: imageAccept, allowedMimeTypes: imageMimeTypes, required: true },
+      { key: "alt_text", label: "Accessible alt text", required: true }, { key: "caption", label: "Caption", kind: "textarea" },
+      { key: "media_type", label: "Media type", kind: "select", options: ["image","video","document"] },
+      { key: "display_order", label: "Display order", kind: "number" }, { key: "is_visible", label: "Visible", kind: "checkbox" },
     ],
   },
   {
@@ -283,6 +311,51 @@ const sections: Section[] = [
       { key: "published", label: "Published", kind: "checkbox" },
     ],
   },
+  {
+    table: "pages", label: "Pages", description: "Page publication, SEO and social-preview metadata.",
+    fields: [
+      { key: "page_key", label: "Stable page key", required: true }, { key: "title", label: "Title", required: true },
+      { key: "slug", label: "Path", required: true }, { key: "seo_title", label: "SEO title" },
+      { key: "seo_description", label: "SEO description", kind: "textarea" }, { key: "open_graph_title", label: "Open Graph title" },
+      { key: "open_graph_description", label: "Open Graph description", kind: "textarea" },
+      { key: "open_graph_image", label: "Open Graph image", kind: "asset-image", bucket: "public-assets", accept: imageAccept, allowedMimeTypes: imageMimeTypes },
+      { key: "is_published", label: "Published", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "page_sections", label: "Sections", description: "Add, order, publish, hide or archive reusable sections on any page.",
+    fields: [
+      { key: "page_id", label: "Page", kind: "select", required: true }, { key: "section_key", label: "Stable section key", required: true },
+      { key: "section_type", label: "Section type", kind: "select", options: ["hero","rich_text","featured_projects","projects_grid","experience_list","certifications_grid","volunteering","skills","cta","stats","media_gallery","custom_cards"], required: true },
+      { key: "title", label: "Title" }, { key: "subtitle", label: "Subtitle" }, { key: "description", label: "Description", kind: "textarea" },
+      { key: "cta_label", label: "CTA label" }, { key: "cta_href", label: "CTA destination" },
+      { key: "secondary_cta_label", label: "Secondary CTA label" }, { key: "secondary_cta_href", label: "Secondary CTA destination" },
+      { key: "layout_variant", label: "Layout variant" }, { key: "display_order", label: "Display order", kind: "number" },
+      { key: "is_visible", label: "Visible", kind: "checkbox" }, { key: "is_archived", label: "Archived", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "volunteering", label: "Volunteering", description: "Volunteer roles kept separate from professional experience.",
+    fields: [
+      { key: "stable_key", label: "Stable key", required: true }, { key: "role", label: "Role", required: true },
+      { key: "organisation", label: "Organisation", required: true }, { key: "start_date", label: "Start date" },
+      { key: "end_date", label: "End date" }, { key: "date_label", label: "Date label" }, { key: "domain", label: "Domain" },
+      { key: "summary", label: "Summary", kind: "textarea" }, { key: "description_items", label: "Details", kind: "list" },
+      { key: "focus_areas", label: "Focus areas", kind: "list" }, { key: "sort_order", label: "Sort order", kind: "number" },
+      { key: "published", label: "Published", kind: "checkbox" }, { key: "archived", label: "Archived", kind: "checkbox" },
+    ],
+  },
+  {
+    table: "page_section_items", label: "Section Cards & Media", description: "Repeatable cards, stats, links and media for flexible page sections.",
+    fields: [
+      { key: "page_section_id", label: "Page section ID", required: true }, { key: "title", label: "Title" },
+      { key: "subtitle", label: "Subtitle" }, { key: "description", label: "Description", kind: "textarea" },
+      { key: "link_label", label: "Link label" }, { key: "link_url", label: "Link destination" },
+      { key: "media_url", label: "Media", kind: "asset-image", bucket: "public-assets", accept: imageAccept, allowedMimeTypes: imageMimeTypes },
+      { key: "media_alt", label: "Media alt text" }, { key: "display_order", label: "Display order", kind: "number" },
+      { key: "is_visible", label: "Visible", kind: "checkbox" },
+    ],
+  },
 ];
 
 const emptyRow = (section: Section): Row => Object.fromEntries(section.fields.map((field) => [
@@ -353,7 +426,7 @@ export const AdminDashboard = ({
 
   const active = sections.find((section) => section.table === view);
   const activeFields = useMemo(() => {
-    if (!active || active.table !== "project_sections") return active?.fields ?? [];
+    if (!active) return [];
 
     return active.fields.map((field) => field.key === "project_id"
       ? {
@@ -363,8 +436,16 @@ export const AdminDashboard = ({
             value: String(project.id ?? ""),
           })).filter((option) => option.value),
         }
+      : field.key === "page_id"
+        ? {
+            ...field,
+            options: (records.pages ?? []).map((page) => ({
+              label: String(page.title ?? page.page_key ?? "Untitled page"),
+              value: String(page.id ?? ""),
+            })).filter((option) => option.value),
+          }
       : field);
-  }, [active, records.projects]);
+  }, [active, records.pages, records.projects]);
   const stats = useMemo(() => ({
     skills: records.skills?.length ?? 0,
     projects: records.projects?.length ?? 0,

@@ -57,6 +57,8 @@ export type ProjectSectionContent = {
   body: string;
   bullets: string[];
   sortOrder: number;
+  sectionType?: string;
+  isVisible?: boolean;
 };
 
 export type ProjectContent = StaticProject & {
@@ -66,8 +68,56 @@ export type ProjectContent = StaticProject & {
   githubUrl?: string;
   linkedinUrl?: string;
   featured?: boolean;
+  status?: "draft" | "preparation" | "published" | "archived";
+  group?: string;
+  homeFeaturedOrder?: number;
+  projectsPageOrder?: number;
+  demoUrl?: string;
+  repositoryUrl?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  openGraphImage?: string;
   sortOrder?: number;
   sections?: ProjectSectionContent[];
+};
+
+export type PageSectionContent = {
+  id: string;
+  pageKey: string;
+  sectionType: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  ctaLabel: string;
+  ctaHref: string;
+  secondaryCtaLabel: string;
+  secondaryCtaHref: string;
+  displayOrder: number;
+  layoutVariant: string;
+};
+
+export type PageContent = {
+  id: string;
+  pageKey: string;
+  title: string;
+  slug: string;
+  seoTitle: string;
+  seoDescription: string;
+  openGraphTitle: string;
+  openGraphDescription: string;
+  openGraphImage: string;
+  sections: PageSectionContent[];
+};
+
+export type VolunteeringContent = {
+  role: string;
+  organisation: string;
+  date: string;
+  domain: string;
+  summary: string;
+  descriptionItems: string[];
+  focusAreas: string[];
+  sortOrder: number;
 };
 
 export type ExperienceContent = StaticExperience & {
@@ -121,6 +171,8 @@ export type PortfolioContent = {
   certifications: CertificationContent[];
   resumes: ResumeContent[];
   socialLinks: SocialLinkContent[];
+  pages: PageContent[];
+  volunteering: VolunteeringContent[];
   navLinks: NavLink[];
 };
 
@@ -138,7 +190,13 @@ export type CmsTableName =
   | "social_links"
   | "site_settings"
   | "contact_messages"
-  | "uploads";
+  | "uploads"
+  | "pages"
+  | "page_sections"
+  | "page_section_items"
+  | "project_section_items"
+  | "project_media"
+  | "volunteering";
 
 export type AdminContentSnapshot = Partial<Record<CmsTableName, unknown[]>>;
 

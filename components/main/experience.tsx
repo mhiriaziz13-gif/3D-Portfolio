@@ -63,15 +63,15 @@ const TimelinePanel = ({ experience }: { experience: ExperienceContent }) => {
   );
 };
 
-export const Experience = ({ experience = fallbackPortfolioContent.experience }: { experience?: ExperienceContent[] }) => {
+export const Experience = ({ experience = fallbackPortfolioContent.experience, title = "Work Experience", subtitle = "What I have worked on" }: { experience?: ExperienceContent[]; title?: string; subtitle?: string }) => {
   return (
     <section
       id="experience"
       className="render-deferred relative z-[20] mx-auto flex w-full max-w-7xl flex-col px-6 py-24"
     >
-      <p className="Welcome-text text-sm uppercase">What I have worked on</p>
+      <p className="Welcome-text text-sm uppercase">{subtitle}</p>
       <h2 className="mt-3 text-4xl font-bold text-white sm:text-5xl">
-        Work Experience
+        {title}
       </h2>
 
       <div className="mt-16 flex flex-col gap-10">

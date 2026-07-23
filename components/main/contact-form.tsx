@@ -46,6 +46,7 @@ export const ContactForm = ({ recipient }: { recipient: string }) => {
 
       if (response.ok && data.ok && !data.fallback) {
         pushAnalyticsEvent({ event: "contact_submit_success", form_name: "portfolio_contact", contact_method: "api", cta_location: "contact_page" });
+        pushAnalyticsEvent({ event: "contact_submit", form_name: "portfolio_contact" });
         setForm(initialForm);
         setStatus(data.message ?? "Message sent. Thank you.");
         return;

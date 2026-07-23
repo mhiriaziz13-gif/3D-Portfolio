@@ -31,7 +31,7 @@ export const ProjectCard = ({
         <TrackedLink
           href={href}
           analyticsEvent={{
-            event: "project_card_click",
+            event: "project_view",
             project_slug: projectSlug || href.split("/").pop() || "unknown",
             project_title: title,
             card_location: cardLocation,

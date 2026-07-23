@@ -108,5 +108,7 @@ export const fallbackPortfolioContent: PortfolioContent = {
       sortOrder: 2,
     },
   ],
+  pages: [],
+  volunteering: [],
   navLinks: navLinks.map((link) => ({ ...link })),
 };

@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const project = await getProjectBySlug(slug);
   if (!project) return createPageMetadata({ title: "Project not found", description: "This project is not available.", path: `/projects/${slug}`, noindex: true });
-  return createPageMetadata({ title: project.title, description: project.description.slice(0, 160), path: `/projects/${project.slug}`, image: project.image });
+  return createPageMetadata({ title: project.seoTitle || project.title, description: (project.seoDescription || project.description).slice(0, 160), path: `/projects/${project.slug}`, image: project.openGraphImage || project.image });
 }
 
 export default async function ProjectDetailPage({ params }: PageProps) {

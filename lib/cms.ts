@@ -28,6 +28,7 @@ export const cmsTables: CmsTableName[] = [
   "site_settings",
   "contact_messages",
   "uploads",
+  "pages", "page_sections", "page_section_items", "project_section_items", "project_media", "volunteering",
 ];
 
 const publicTables: CmsTableName[] = [
@@ -42,6 +43,7 @@ const publicTables: CmsTableName[] = [
   "certifications",
   "resumes",
   "social_links",
+  "pages", "page_sections", "volunteering",
 ];
 
 const asStringArray = (value: unknown): string[] =>
@@ -96,7 +98,7 @@ const emptyPublishedContent = (): PortfolioContent => ({
   profile: { name: "", initials: "", avatarPath: "", location: "", email: "", linkedIn: "", linkedInLabel: "", github: "", githubLabel: "", availability: "", mainTitle: "", secondaryLine: "", tagline: "", shortProfile: "", about: "", aboutFocus: [] },
   hero: { eyebrow: "", title: "", subtitle: "", tagline: "", dynamicTitles: [], primaryCtaLabel: "", primaryCtaHref: "/contact", secondaryCtaLabel: "", secondaryCtaHref: "/projects" },
   about: { title: "", body: "", highlights: [], avatarUrl: "" },
-  skillCategories: [], projects: [], projectSections: [], experience: [], education: [], certifications: [], resumes: [], socialLinks: [],
+  skillCategories: [], projects: [], projectSections: [], experience: [], education: [], certifications: [], resumes: [], socialLinks: [], pages: [], volunteering: [],
   navLinks: fallbackPortfolioContent.navLinks,
 });
 
@@ -114,22 +116,25 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
   try {
     const supabase = createSupabasePublicClient();
 
-    const [profileResult, heroResult, aboutResult, skillsResult, projectsResult, sectionsResult, experienceResult, educationResult, certificationsResult, resumesResult, socialLinksResult] =
+    const [profileResult, heroResult, aboutResult, skillsResult, projectsResult, sectionsResult, experienceResult, educationResult, certificationsResult, resumesResult, socialLinksResult, pagesResult, pageSectionsResult, volunteeringResult] =
       await Promise.all([
         supabase.from("profile").select("*").eq("published", true).order("updated_at", { ascending: false }).limit(1),
         supabase.from("hero").select("*").eq("published", true).order("updated_at", { ascending: false }).limit(1),
         supabase.from("about").select("*").eq("published", true).order("updated_at", { ascending: false }).limit(1),
         supabase.from("skills").select("*").eq("published", true).order("sort_order", { ascending: true }),
-        supabase.from("projects").select("*").eq("published", true).order("sort_order", { ascending: true }),
-        supabase.from("project_sections").select("*" ).order("sort_order", { ascending: true }),
+        supabase.from("projects").select("*").eq("published", true).eq("status", "published").order("projects_page_order", { ascending: true }),
+        supabase.from("project_sections").select("*" ).eq("is_visible", true).eq("is_archived", false).order("sort_order", { ascending: true }),
         supabase.from("experience").select("*").eq("published", true).order("sort_order", { ascending: true }),
         supabase.from("education").select("*").eq("published", true).order("sort_order", { ascending: true }),
         supabase.from("certifications").select("*").eq("published", true).order("sort_order", { ascending: true }),
         supabase.from("resumes").select("*").eq("published", true).order("sort_order", { ascending: true }),
         supabase.from("social_links").select("*").eq("published", true).order("sort_order", { ascending: true }),
+        supabase.from("pages").select("*").eq("is_published", true),
+        supabase.from("page_sections").select("*").eq("is_visible", true).eq("is_archived", false).order("display_order", { ascending: true }),
+        supabase.from("volunteering").select("*").eq("published", true).eq("archived", false).order("sort_order", { ascending: true }),
       ]);
 
-    const results = [profileResult, heroResult, aboutResult, skillsResult, projectsResult, sectionsResult, experienceResult, educationResult, certificationsResult, resumesResult, socialLinksResult];
+    const results = [profileResult, heroResult, aboutResult, skillsResult, projectsResult, sectionsResult, experienceResult, educationResult, certificationsResult, resumesResult, socialLinksResult, pagesResult, pageSectionsResult, volunteeringResult];
     const failed = results.find((result) => result.error);
     if (failed?.error) {
       throw failed.error;
@@ -146,6 +151,9 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
     const certificationRows = readRows(certificationsResult.data);
     const resumeRows = readRows(resumesResult.data);
     const socialLinkRows = readRows(socialLinksResult.data);
+    const pageRows = readRows(pagesResult.data);
+    const pageSectionRows = readRows(pageSectionsResult.data);
+    const volunteeringRows = readRows(volunteeringResult.data);
 
     const profileRow = profileRows[0];
     const heroRow = heroRows[0];
@@ -219,6 +227,8 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
         body: String(row.body ?? ""),
         bullets: asStringArray(row.bullets),
         sortOrder: Number(row.sort_order ?? 0),
+        sectionType: String(row.section_type ?? "rich_text"),
+        isVisible: Boolean(row.is_visible ?? true),
       };
       sectionsByProjectId.set(projectId, [...(sectionsByProjectId.get(projectId) ?? []), section]);
     });
@@ -241,7 +251,16 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
         githubUrl: String(row.github_url ?? ""),
         linkedinUrl: String(row.linkedin_url ?? ""),
         featured: Boolean(row.featured),
-        sortOrder: Number(row.sort_order ?? index),
+        status: String(row.status ?? "published") as ProjectContent["status"],
+        group: String(row.project_group ?? "Additional Projects"),
+        homeFeaturedOrder: row.home_featured_order == null ? undefined : Number(row.home_featured_order),
+        projectsPageOrder: Number(row.projects_page_order ?? row.sort_order ?? index),
+        demoUrl: String(row.demo_url ?? ""),
+        repositoryUrl: String(row.github_url ?? ""),
+        seoTitle: String(row.seo_title ?? ""),
+        seoDescription: String(row.seo_description ?? ""),
+        openGraphImage: String(row.open_graph_image ?? ""),
+        sortOrder: Number(row.projects_page_order ?? row.sort_order ?? index),
         sections,
       };
     });
@@ -304,6 +323,41 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
         label: String(row.label ?? ""),
         url: String(row.url ?? ""),
         iconKey: typeof row.icon_key === "string" ? row.icon_key : undefined,
+        sortOrder: Number(row.sort_order ?? index),
+      })),
+      pages: pageRows.map((row) => ({
+        id: String(row.id ?? ""),
+        pageKey: String(row.page_key ?? ""),
+        title: String(row.title ?? ""),
+        slug: String(row.slug ?? ""),
+        seoTitle: String(row.seo_title ?? ""),
+        seoDescription: String(row.seo_description ?? ""),
+        openGraphTitle: String(row.open_graph_title ?? ""),
+        openGraphDescription: String(row.open_graph_description ?? ""),
+        openGraphImage: String(row.open_graph_image ?? ""),
+        sections: sortByOrder(pageSectionRows.filter((section) => String(section.page_id) === String(row.id))).map((section) => ({
+          id: String(section.id ?? ""),
+          pageKey: String(row.page_key ?? ""),
+          sectionType: String(section.section_type ?? "rich_text"),
+          title: String(section.title ?? ""),
+          subtitle: String(section.subtitle ?? ""),
+          description: String(section.description ?? ""),
+          ctaLabel: String(section.cta_label ?? ""),
+          ctaHref: String(section.cta_href ?? ""),
+          secondaryCtaLabel: String(section.secondary_cta_label ?? ""),
+          secondaryCtaHref: String(section.secondary_cta_href ?? ""),
+          displayOrder: Number(section.display_order ?? 0),
+          layoutVariant: String(section.layout_variant ?? ""),
+        })),
+      })),
+      volunteering: sortByOrder(volunteeringRows).map((row, index) => ({
+        role: String(row.role ?? ""),
+        organisation: String(row.organisation ?? ""),
+        date: String(row.date_label ?? [row.start_date, row.end_date].filter(Boolean).join(" – ")),
+        domain: String(row.domain ?? ""),
+        summary: String(row.summary ?? ""),
+        descriptionItems: asStringArray(row.description_items),
+        focusAreas: asStringArray(row.focus_areas),
         sortOrder: Number(row.sort_order ?? index),
       })),
       navLinks: fallbackPortfolioContent.navLinks,

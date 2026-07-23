@@ -6,7 +6,7 @@ import {
 
 export type AnalyticsEvent =
   | {
-      event: "project_card_click";
+      event: "project_view";
       project_slug: string;
       project_title: string;
       card_location: "homepage" | "projects_page" | "related_projects";
@@ -47,6 +47,19 @@ export type AnalyticsEvent =
       event: "contact_cta_click";
       cta_location: "hero" | "project_page" | "resume_page" | "footer";
       cta_label: string;
+    }
+  | {
+      event: "project_cta_click" | "project_demo_click" | "project_repository_click";
+      project_title: string;
+      cta_location: "project_card" | "project_page";
+    }
+  | {
+      event: "outbound_linkedin_click" | "outbound_github_click";
+      link_location: "project_card" | "project_page" | "navbar" | "footer" | "contact" | "about";
+    }
+  | {
+      event: "contact_submit";
+      form_name: "portfolio_contact";
     };
 
 export const pushAnalyticsEvent = (event: AnalyticsEvent) => {
