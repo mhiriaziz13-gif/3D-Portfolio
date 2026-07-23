@@ -112,11 +112,14 @@ export type PageContent = {
 export type VolunteeringContent = {
   role: string;
   organisation: string;
+  logoUrl: string;
+  logoAlt: string;
   date: string;
   domain: string;
   summary: string;
   descriptionItems: string[];
   focusAreas: string[];
+  certification?: CertificationContent;
   sortOrder: number;
 };
 

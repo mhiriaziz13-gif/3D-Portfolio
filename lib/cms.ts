@@ -1,6 +1,7 @@
 import { fallbackPortfolioContent } from "@/data/fallback-portfolio";
 import type {
   AdminContentSnapshot,
+  CertificationContent,
   CmsTableName,
   ExperienceContent,
   PortfolioContent,
@@ -290,6 +291,18 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
       sortOrder: Number(row.sort_order ?? index),
     }));
 
+    const certifications: CertificationContent[] = sortByOrder(certificationRows).map((row, index) => ({
+      name: String(row.name ?? ""),
+      issuer: String(row.issuer ?? ""),
+      date: String(row.date ?? ""),
+      credentialUrl: typeof row.credential_url === "string" ? row.credential_url : undefined,
+      credentialId: typeof row.credential_id === "string" ? row.credential_id : undefined,
+      imageUrl: typeof row.image_url === "string" ? row.image_url : undefined,
+      description: typeof row.description === "string" ? row.description : undefined,
+      tags: asStringArray(row.tags),
+      sortOrder: Number(row.sort_order ?? index),
+    }));
+
     const content: PortfolioContent = {
       profile,
       hero,
@@ -307,17 +320,7 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
         location: String(row.location ?? ""),
         sortOrder: Number(row.sort_order ?? index),
       })),
-      certifications: sortByOrder(certificationRows).map((row, index) => ({
-        name: String(row.name ?? ""),
-        issuer: String(row.issuer ?? ""),
-        date: String(row.date ?? ""),
-        credentialUrl: typeof row.credential_url === "string" ? row.credential_url : undefined,
-        credentialId: typeof row.credential_id === "string" ? row.credential_id : undefined,
-        imageUrl: typeof row.image_url === "string" ? row.image_url : undefined,
-        description: typeof row.description === "string" ? row.description : undefined,
-        tags: asStringArray(row.tags),
-        sortOrder: Number(row.sort_order ?? index),
-      })),
+      certifications,
       resumes,
       socialLinks: sortByOrder(socialLinkRows).map((row, index) => ({
         label: String(row.label ?? ""),
@@ -353,11 +356,16 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
       volunteering: sortByOrder(volunteeringRows).map((row, index) => ({
         role: String(row.role ?? ""),
         organisation: String(row.organisation ?? ""),
+        logoUrl: String(row.logo_url ?? ""),
+        logoAlt: String(row.logo_alt ?? ""),
         date: String(row.date_label ?? [row.start_date, row.end_date].filter(Boolean).join(" – ")),
         domain: String(row.domain ?? ""),
         summary: String(row.summary ?? ""),
         descriptionItems: asStringArray(row.description_items),
         focusAreas: asStringArray(row.focus_areas),
+        certification: certifications.find((certification) =>
+          String(certificationRows.find((item) => String(item.id) === String(row.certification_id))?.name ?? "") === certification.name
+        ),
         sortOrder: Number(row.sort_order ?? index),
       })),
       navLinks: fallbackPortfolioContent.navLinks,

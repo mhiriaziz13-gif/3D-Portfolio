@@ -50,6 +50,18 @@ type Section = {
 };
 type View = "overview" | EditableTable | "contact_messages" | "uploads" | "settings";
 
+const primarySectionTables: EditableTable[] = [
+  "profile", "hero", "about", "projects", "project_sections", "experience",
+  "volunteering", "certifications", "skills", "education", "resumes",
+  "social_links",
+];
+
+const navigationGroups: { label: string; tables: EditableTable[] }[] = [
+  { label: "Main content", tables: ["profile", "hero", "about"] },
+  { label: "Career & portfolio", tables: ["projects", "project_sections", "experience", "volunteering", "certifications"] },
+  { label: "Details", tables: ["skills", "education", "resumes", "social_links"] },
+];
+
 const imageAccept = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
 const pdfAccept = ".pdf,application/pdf";
 const docxAccept = ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -64,7 +76,7 @@ const skillCategories = [
 const sections: Section[] = [
   {
     table: "profile",
-    label: "Profile",
+    label: "Personal info",
     singleton: true,
     description: "Identity, positioning and public contact details.",
     fields: [
@@ -93,7 +105,7 @@ const sections: Section[] = [
   },
   {
     table: "hero",
-    label: "Hero",
+    label: "Home intro",
     singleton: true,
     description: "Homepage copy and calls to action.",
     fields: [
@@ -111,7 +123,7 @@ const sections: Section[] = [
   },
   {
     table: "about",
-    label: "About",
+    label: "About page",
     singleton: true,
     description: "About page introduction and highlights.",
     fields: [
@@ -179,8 +191,8 @@ const sections: Section[] = [
   },
   {
     table: "project_sections",
-    label: "Project Sections",
-    description: "Editable case-study blocks displayed on project detail pages. Their order, titles and content all come from the CMS.",
+    label: "Project page content",
+    description: "Text blocks displayed on each project page. Choose the project by name.",
     fields: [
       { key: "project_id", label: "Project", kind: "select", required: true },
       { key: "title", label: "Title", required: true },
@@ -211,7 +223,7 @@ const sections: Section[] = [
   },
   {
     table: "experience",
-    label: "Experience",
+    label: "Work experience",
     description: "Career timeline, company logos and achievements.",
     fields: [
       { key: "company", label: "Company", required: true },
@@ -274,7 +286,7 @@ const sections: Section[] = [
   },
   {
     table: "resumes",
-    label: "Resumes",
+    label: "CV downloads",
     description: "PDF and DOCX variants available for download.",
     fields: [
       { key: "label", label: "Label", required: true },
@@ -301,7 +313,7 @@ const sections: Section[] = [
   },
   {
     table: "social_links",
-    label: "Social Links",
+    label: "Social links",
     description: "LinkedIn, GitHub, email and future profiles.",
     fields: [
       { key: "label", label: "Label", required: true },
@@ -312,7 +324,7 @@ const sections: Section[] = [
     ],
   },
   {
-    table: "pages", label: "Pages", description: "Page publication, SEO and social-preview metadata.",
+    table: "pages", label: "Page settings", description: "Page titles, publication and search/social preview information.",
     fields: [
       { key: "page_key", label: "Stable page key", required: true }, { key: "title", label: "Title", required: true },
       { key: "slug", label: "Path", required: true }, { key: "seo_title", label: "SEO title" },
@@ -323,7 +335,7 @@ const sections: Section[] = [
     ],
   },
   {
-    table: "page_sections", label: "Sections", description: "Add, order, publish, hide or archive reusable sections on any page.",
+    table: "page_sections", label: "Page layout", description: "Control the visible sections and text on each page.",
     fields: [
       { key: "page_id", label: "Page", kind: "select", required: true }, { key: "section_key", label: "Stable section key", required: true },
       { key: "section_type", label: "Section type", kind: "select", options: ["hero","rich_text","featured_projects","projects_grid","experience_list","certifications_grid","volunteering","skills","cta","stats","media_gallery","custom_cards"], required: true },
@@ -335,11 +347,14 @@ const sections: Section[] = [
     ],
   },
   {
-    table: "volunteering", label: "Volunteering", description: "Volunteer roles kept separate from professional experience.",
+    table: "volunteering", label: "Volunteering", description: "Volunteer roles, organisation logos and related certifications.",
     fields: [
-      { key: "stable_key", label: "Stable key", required: true }, { key: "role", label: "Role", required: true },
+      { key: "role", label: "Role", required: true },
       { key: "organisation", label: "Organisation", required: true }, { key: "start_date", label: "Start date" },
       { key: "end_date", label: "End date" }, { key: "date_label", label: "Date label" }, { key: "domain", label: "Domain" },
+      { key: "logo_url", label: "Organisation logo", kind: "asset-image", bucket: "public-assets", accept: imageAccept, allowedMimeTypes: imageMimeTypes },
+      { key: "logo_alt", label: "Logo description" },
+      { key: "certification_id", label: "Related certification", kind: "select" },
       { key: "summary", label: "Summary", kind: "textarea" }, { key: "description_items", label: "Details", kind: "list" },
       { key: "focus_areas", label: "Focus areas", kind: "list" }, { key: "sort_order", label: "Sort order", kind: "number" },
       { key: "published", label: "Published", kind: "checkbox" }, { key: "archived", label: "Archived", kind: "checkbox" },
@@ -444,8 +459,19 @@ export const AdminDashboard = ({
               value: String(page.id ?? ""),
             })).filter((option) => option.value),
           }
+      : field.key === "certification_id"
+        ? {
+            ...field,
+            options: [
+              { label: "No related certification", value: "" },
+              ...(records.certifications ?? []).map((certification) => ({
+                label: String(certification.name ?? "Untitled certification"),
+                value: String(certification.id ?? ""),
+              })).filter((option) => option.value),
+            ],
+          }
       : field);
-  }, [active, records.pages, records.projects]);
+  }, [active, records.certifications, records.pages, records.projects]);
   const stats = useMemo(() => ({
     skills: records.skills?.length ?? 0,
     projects: records.projects?.length ?? 0,
@@ -534,7 +560,9 @@ export const AdminDashboard = ({
 
   const beginAdd = (section: Section) => {
     setEditing(-1);
-    setDraft(emptyRow(section));
+    const row = emptyRow(section);
+    if (section.table === "volunteering") row.stable_key = `volunteering-${Date.now()}`;
+    setDraft(row);
     setContentStatus("");
   };
 
@@ -702,7 +730,15 @@ export const AdminDashboard = ({
       <div className="mt-8 grid gap-6 lg:grid-cols-[16rem_1fr]">
         <nav aria-label="CMS sections" className="flex h-fit flex-col gap-1 rounded-lg border border-white/10 bg-[#100b24]/80 p-3">
           {navButton("overview", "Overview")}
-          {sections.map((section) => <span key={section.table} className="contents">{navButton(section.table, section.label)}</span>)}
+          {navigationGroups.map((group) => (
+            <div key={group.label} className="mt-3 flex flex-col gap-1 first:mt-1">
+              <p className="px-4 pb-1 text-[0.65rem] font-semibold uppercase tracking-widest text-gray-500">{group.label}</p>
+              {sections
+                .filter((section) => primarySectionTables.includes(section.table) && group.tables.includes(section.table))
+                .map((section) => <span key={section.table} className="contents">{navButton(section.table, section.label)}</span>)}
+            </div>
+          ))}
+          <p className="mt-3 px-4 pb-1 text-[0.65rem] font-semibold uppercase tracking-widest text-gray-500">Tools</p>
           {navButton("contact_messages", "Contact Messages", stats.unread)}
           {navButton("uploads", "Media Library")}
           {navButton("settings", "Settings")}
